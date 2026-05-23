@@ -934,7 +934,7 @@
       ],
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
-        "line-color": ["match", ["get", "class"], ["service"], "#cfcdca", "hsl(47,61%,51%,70%)"],
+        "line-color": ["match", ["get", "class"], ["service"], "#cfcdca", "hsl(40,70%,60%,70%)"],
         "line-width": [
           "interpolate",
           ["exponential", 1.2],
@@ -1159,7 +1159,7 @@
       ],
       "layout": {"line-join": "round"},
       "paint": {
-        "line-color": "hsl(47,61%,51%)",
+        "line-color": "hsl(40,70%,60%)",
         "line-width": [
           "interpolate",
           ["exponential", 1.2],
@@ -1705,7 +1705,7 @@
         ["match", ["get", "subclass"], ["path", "footway"], true, false]
       ],
       "paint": {
-        "line-color": "hsl(47,61%,51%)",
+        "line-color": "hsl(40,70%,60%)",
         "line-dasharray": [1, 0],
         "line-width": [
           "interpolate",
