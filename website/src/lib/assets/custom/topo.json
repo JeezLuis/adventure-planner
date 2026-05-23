@@ -1053,7 +1053,7 @@
       "type": "line",
       "source": "openmaptiles",
       "source-layer": "transportation",
-      "minzoom": 13,
+      "minzoom": 12,
       "filter": [
         "all",
         [
@@ -1065,7 +1065,10 @@
         ],
         ["match", ["get", "brunnel"], ["bridge", "tunnel"], false, true],
         ["match", ["get", "class"], ["path", "pedestrian"], true, false],
-        ["match", ["get", "subclass"], ["path", "footway"], false, true]
+        ["!", ["all",
+          ["match", ["get", "subclass"], ["path", "footway"], true, false],
+          ["match", ["get", "surface"], ["unpaved"], true, false]
+        ]]
       ],
       "layout": {"line-join": "round"},
       "paint": {
@@ -1099,7 +1102,8 @@
         ],
         ["match", ["get", "brunnel"], ["bridge", "tunnel"], false, true],
         ["match", ["get", "class"], ["path", "pedestrian"], true, false],
-        ["match", ["get", "subclass"], ["path", "footway"], true, false]
+        ["match", ["get", "subclass"], ["path", "footway"], true, false],
+        ["match", ["get", "surface"], ["unpaved"], true, false]
       ],
       "layout": {"line-join": "round"},
       "paint": {
@@ -1132,7 +1136,8 @@
         ],
         ["match", ["get", "brunnel"], ["bridge", "tunnel"], false, true],
         ["match", ["get", "class"], ["path", "pedestrian"], true, false],
-        ["match", ["get", "subclass"], ["path", "footway"], true, false]
+        ["match", ["get", "subclass"], ["path", "footway"], true, false],
+        ["match", ["get", "surface"], ["unpaved"], true, false]
       ],
       "layout": {"line-join": "round"},
       "paint": {
