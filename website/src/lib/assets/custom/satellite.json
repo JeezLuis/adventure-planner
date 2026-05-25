@@ -5,37 +5,21 @@
       "type": "vector",
       "url": "https://gpxstudio.xyz/openmaptiles.json"
     },
-    "hillshading": {
-        "type": "vector",
-        "tiles": ["http://localhost:8080/hillshading/{z}/{x}/{y}.mvt"],
-        "minzoom": 4,
-        "maxzoom": 12
-    },
-    "contours_m": {
-        "type": "vector",
-        "tiles": ["http://localhost:8080/contours_m/{z}/{x}/{y}.mvt"],
-        "minzoom": 4,
-        "maxzoom": 12
+    "esri": {
+      "type": "raster",
+      "tiles": ["https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/WMTS/tile/1.0.0/World_Imagery/default/default028mm/{z}/{y}/{x}.jpg"],
+      "tileSize": 256,
+      "maxzoom": 19,
+      "attribution": "© <a href=\"https://www.esri.com/\" target=\"_blank\">Esri</a>, Vantor, Earthstar Geographics, and the GIS User Community"
     }
   },
   "sprite": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm",
   "glyphs": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
   "layers": [
     {
-      "id": "background",
-      "type": "background",
-      "paint": {"background-color": "#f8f4f0"}
-    },
-    {
-      "id": "park",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "park",
-      "paint": {
-        "fill-color": "#d8e8c8",
-        "fill-opacity": 0.7,
-        "fill-outline-color": "rgba(95, 208, 100, 1)"
-      }
+      "id": "esri",
+      "type": "raster",
+      "source": "esri"
     },
     {
       "id": "park_outline",
@@ -46,260 +30,6 @@
         "line-color": "rgba(228, 241, 215, 1)",
         "line-dasharray": [1, 1.5]
       }
-    },
-    {
-      "id": "landuse_residential",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landuse",
-      "maxzoom": 12,
-      "filter": ["==", ["get", "class"], "residential"],
-      "paint": {
-        "fill-color": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          "hsla(0,3%,85%,0.84)",
-          12,
-          "hsla(35,57%,88%,0.49)"
-        ]
-      }
-    },
-    {
-      "id": "landcover_wood",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landcover",
-      "filter": ["==", ["get", "class"], "wood"],
-      "paint": {
-        "fill-antialias": false,
-        "fill-color": "hsla(98,61%,72%,0.7)",
-        "fill-opacity": 0.4
-      }
-    },
-    {
-      "id": "landcover_grass",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landcover",
-      "filter": ["==", ["get", "class"], "grass"],
-      "paint": {
-        "fill-antialias": false,
-        "fill-color": "rgba(176, 213, 154, 1)",
-        "fill-opacity": 0.3
-      }
-    },
-    {
-      "id": "landcover_ice",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landcover",
-      "filter": ["==", ["get", "class"], "ice"],
-      "paint": {
-        "fill-antialias": false,
-        "fill-color": "rgba(224, 236, 236, 1)",
-        "fill-opacity": 0.8
-      }
-    },
-    {
-      "id": "landcover_wetland",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landcover",
-      "minzoom": 12,
-      "filter": ["==", ["get", "class"], "wetland"],
-      "paint": {
-        "fill-antialias": true,
-        "fill-opacity": 0.8,
-        "fill-pattern": "wetland_bg_11",
-        "fill-translate-anchor": "map"
-      }
-    },
-    {
-        "id": "hillshading",
-        "type": "fill",
-        "source": "hillshading",
-        "source-layer": "hillshading",
-        "paint": {
-            "fill-color": "#bdbdbd",
-            "fill-opacity": 0.2
-        }
-    },
-    {
-        "id": "contours_index_m",
-        "type": "line",
-        "source": "contours_m",
-        "source-layer": "contours_m",
-        "filter": [
-            "any",
-            ["all", ["<=", ["zoom"], 11], ["==", ["%", ["get", "ele"], 500], 0]],
-            ["all", ["==", ["zoom"], 12], ["==", ["%", ["get", "ele"], 250], 0]],
-            ["all", [">=", ["zoom"], 13], ["==", ["%", ["get", "ele"], 100], 0]]
-        ],
-        "paint": {
-            "line-color": "rgb(124, 122, 121)",
-            "line-opacity": 0.1,
-            "line-width": 1.0
-        }
-    },
-    {
-        "id": "contours_m",
-        "type": "line",
-        "source": "contours_m",
-        "source-layer": "contours_m",
-        "filter": [
-            "any",
-            ["all", ["<=", ["zoom"], 11], ["==", ["%", ["get", "ele"], 100], 0]],
-            ["all", ["==", ["zoom"], 12], ["==", ["%", ["get", "ele"], 50], 0]],
-            ["all", [">=", ["zoom"], 13], ["==", ["%", ["get", "ele"], 25], 0]]
-        ],
-        "paint": {
-            "line-color": "rgb(126, 124, 121)",
-            "line-opacity": 0.3,
-            "line-width": 0.5
-        }
-    },
-    {
-      "id": "landuse_pitch",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landuse",
-      "filter": ["==", ["get", "class"], "pitch"],
-      "paint": {"fill-color": "#DEE3CD"}
-    },
-    {
-      "id": "landuse_track",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landuse",
-      "filter": ["==", ["get", "class"], "track"],
-      "paint": {"fill-color": "#DEE3CD"}
-    },
-    {
-      "id": "landuse_cemetery",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landuse",
-      "filter": ["==", ["get", "class"], "cemetery"],
-      "paint": {"fill-color": "hsl(75,37%,81%)"}
-    },
-    {
-      "id": "landuse_hospital",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landuse",
-      "filter": ["==", ["get", "class"], "hospital"],
-      "paint": {"fill-color": "#fde"}
-    },
-    {
-      "id": "landuse_school",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landuse",
-      "filter": ["==", ["get", "class"], "school"],
-      "paint": {"fill-color": "rgb(236,238,204)"}
-    },
-    {
-      "id": "waterway_tunnel",
-      "type": "line",
-      "source": "openmaptiles",
-      "source-layer": "waterway",
-      "filter": ["==", ["get", "brunnel"], "tunnel"],
-      "paint": {
-        "line-color": "#a0c8f0",
-        "line-dasharray": [3, 3],
-        "line-gap-width": ["interpolate", ["linear"], ["zoom"], 12, 0, 20, 6],
-        "line-opacity": 1,
-        "line-width": [
-          "interpolate",
-          ["exponential", 1.4],
-          ["zoom"],
-          8,
-          1,
-          20,
-          2
-        ]
-      }
-    },
-    {
-      "id": "waterway_river",
-      "type": "line",
-      "source": "openmaptiles",
-      "source-layer": "waterway",
-      "filter": [
-        "all",
-        ["==", ["get", "class"], "river"],
-        ["!=", ["get", "brunnel"], "tunnel"]
-      ],
-      "layout": {"line-cap": "round"},
-      "paint": {
-        "line-color": "#a0c8f0",
-        "line-width": [
-          "interpolate",
-          ["exponential", 1.2],
-          ["zoom"],
-          11,
-          0.5,
-          20,
-          6
-        ]
-      }
-    },
-    {
-      "id": "waterway_other",
-      "type": "line",
-      "source": "openmaptiles",
-      "source-layer": "waterway",
-      "filter": [
-        "all",
-        ["!=", ["get", "class"], "river"],
-        ["!=", ["get", "brunnel"], "tunnel"]
-      ],
-      "layout": {"line-cap": "round"},
-      "paint": {
-        "line-color": "#a0c8f0",
-        "line-width": [
-          "interpolate",
-          ["exponential", 1.3],
-          ["zoom"],
-          13,
-          0.5,
-          20,
-          6
-        ]
-      }
-    },
-    {
-      "id": "water",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "water",
-      "filter": ["!=", ["get", "brunnel"], "tunnel"],
-      "paint": {"fill-color": "rgb(158,189,255)"}
-    },
-    {
-      "id": "landcover_sand",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "landcover",
-      "filter": ["==", ["get", "class"], "sand"],
-      "paint": {"fill-color": "rgba(247, 239, 195, 1)"}
-    },
-    {
-      "id": "aeroway_fill",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "aeroway",
-      "minzoom": 11,
-      "filter": [
-        "match",
-        ["geometry-type"],
-        ["MultiPolygon", "Polygon"],
-        true,
-        false
-      ],
-      "paint": {"fill-color": "rgba(229, 228, 224, 1)", "fill-opacity": 0.7}
     },
     {
       "id": "aeroway_runway",
@@ -2154,39 +1884,6 @@
       }
     },
     {
-      "id": "building",
-      "type": "fill",
-      "source": "openmaptiles",
-      "source-layer": "building",
-      "minzoom": 13,
-      "maxzoom": 14,
-      "paint": {
-        "fill-color": "hsl(35,8%,85%)",
-        "fill-outline-color": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          13,
-          "hsla(35,6%,79%,0.32)",
-          14,
-          "hsl(35,6%,79%)"
-        ]
-      }
-    },
-    {
-      "id": "building-3d",
-      "type": "fill-extrusion",
-      "source": "openmaptiles",
-      "source-layer": "building",
-      "minzoom": 14,
-      "paint": {
-        "fill-extrusion-base": ["get", "render_min_height"],
-        "fill-extrusion-color": "hsl(35,8%,85%)",
-        "fill-extrusion-height": ["get", "render_height"],
-        "fill-extrusion-opacity": 0.8
-      }
-    },
-    {
       "id": "boundary_3",
       "type": "line",
       "source": "openmaptiles",
@@ -2241,34 +1938,6 @@
         "line-dasharray": [1, 2],
         "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1, 5, 1.2, 12, 3]
       }
-    },
-    {
-        "id": "contours_label_m",
-        "type": "symbol",
-        "source": "contours_m",
-        "source-layer": "contours_m",
-        "filter": [
-            "any",
-            ["all", ["<=", ["zoom"], 11], ["==", ["%", ["get", "ele"], 500], 0]],
-            ["all", ["==", ["zoom"], 12], ["==", ["%", ["get", "ele"], 250], 0]],
-            ["all", ["==", ["zoom"], 13], ["==", ["%", ["get", "ele"], 100], 0]],
-            ["all", [">=", ["zoom"], 14], ["==", ["%", ["get", "ele"], 50], 0]]
-        ],
-        "layout": {
-            "text-size": ["interpolate", ["linear"], ["zoom"], 11, 6, 18, 10],
-            "text-allow-overlap": false,
-            "symbol-avoid-edges": true,
-            "text-ignore-placement": false,
-            "symbol-placement": "line",
-            "text-rotation-alignment": "map",
-            "text-field": "{ele}m",
-            "text-padding": 0
-        },
-        "paint": {
-            "text-color": "#5c5c5c",
-            "text-halo-color": "rgba(255,255,255,0.85)",
-            "text-halo-width": 1.25
-        }
     },
     {
       "id": "waterway_line_label",
