@@ -20,7 +20,7 @@
         }
         embeddingOptions = getMergedEmbeddingOptions(options);
         if (embeddingOptions.key === '' && embeddingOptions.basemap === 'satellite') {
-            embeddingOptions.basemap = 'topo';
+            embeddingOptions.basemap = 'libertyTopo';
         }
     });
 </script>

@@ -31,8 +31,10 @@ import bikerouterGravel from './custom/bikerouter-gravel.json';
 export const maptilerKeyPlaceHolder = 'MAPTILER_KEY';
 
 export const basemaps: { [key: string]: string | StyleSpecification } = {
-    topo: 'https://raw.githubusercontent.com/gpxstudio/styles/refs/heads/main/topo.json',
-    satellite: 'https://raw.githubusercontent.com/gpxstudio/styles/refs/heads/main/satellite.json',
+    libertyTopo: 'https://styles.gpx.studio/liberty-topo.json',
+    libertySatellite: 'https://styles.gpx.studio/liberty-satellite.json',
+    osm: 'https://styles.gpx.studio/osm.json',
+    osmTopo: 'https://styles.gpx.studio/osm-topo.json',
     esriSatellite: {
         version: 8,
         sources: {
@@ -797,8 +799,10 @@ export type LayerTreeType = { [key: string]: LayerTreeType | boolean };
 export const basemapTree: LayerTreeType = {
     basemaps: {
         world: {
-            topo: true,
-            satellite: true,
+            libertyTopo: true,
+            libertySatellite: true,
+            osm: true,
+            osmTopo: true,
             esriSatellite: true,
             openStreetMap: true,
             openTopoMap: true,
@@ -932,7 +936,7 @@ export const overpassTree: LayerTreeType = {
 };
 
 // Default basemap used
-export const defaultBasemap = 'topo';
+export const defaultBasemap = 'libertyTopo';
 
 // Default overlays used (none)
 export const defaultOverlays: LayerTreeType = {
@@ -1021,8 +1025,10 @@ export const defaultOverpassQueries: LayerTreeType = {
 export const defaultBasemapTree: LayerTreeType = {
     basemaps: {
         world: {
-            topo: true,
-            satellite: true,
+            libertyTopo: true,
+            libertySatellite: true,
+            osm: true,
+            osmTopo: true,
             esriSatellite: false,
             openStreetMap: true,
             openTopoMap: true,
