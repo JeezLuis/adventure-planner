@@ -59,7 +59,10 @@ export class StyleManager {
         terrainSource.subscribe(() => this.updateTerrain());
         customLayers.subscribe(() => this.updateBasemap());
         distanceUnits.subscribe(() => {
-            if (get(currentBasemap) === 'libertyTopo') this.updateBasemap();
+            const map = get(this._map);
+            if (map && (map.getLayer('contours_m') || map.getLayer('contours_ft'))) {
+                this.updateBasemap();
+            }
         });
     }
 
