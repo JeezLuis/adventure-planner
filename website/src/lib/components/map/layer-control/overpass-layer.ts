@@ -24,7 +24,7 @@ liveQuery(() => db.overpassdata.toArray()).subscribe((pois) => {
 });
 
 export class OverpassLayer {
-    overpassUrl = 'https://overpass.private.coffee/api/interpreter';
+    overpassUrl = 'https://overpass.gpx.studio/api/interpreter';
     minZoom = 12;
     queryZoom = 12;
     expirationTime = 7 * 24 * 3600 * 1000;
