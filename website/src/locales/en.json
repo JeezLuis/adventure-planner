@@ -454,7 +454,19 @@
         "new_expedition": "Expedition",
         "new_adventure": "Adventure",
         "new_track": "Track",
+        "new_expedition_tooltip": "Create a new expedition (a set of adventures)",
+        "new_adventure_tooltip": "Create a new adventure (a set of tracks)",
         "new_track_tooltip": "Create a new track",
-        "coming_soon": "Coming soon - cloud library"
+        "new_expedition_name": "New expedition",
+        "new_adventure_name": "New adventure",
+        "new_adventure_here": "New adventure here",
+        "new_expedition_here": "New expedition here",
+        "unsorted": "Unsorted",
+        "rename": "Rename",
+        "delete": "Delete",
+        "move_selected_here": "Move selected tracks here",
+        "sync": "Sync",
+        "sync_tooltip": "Synchronize your library with the cloud",
+        "sync_coming_soon": "Cloud sync is coming soon"
     }
 }

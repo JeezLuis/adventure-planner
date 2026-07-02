@@ -1,7 +1,7 @@
 <script lang="ts">
     import GPXLayers from '$lib/components/map/gpx-layer/GPXLayers.svelte';
     import ElevationProfile from '$lib/components/elevation-profile/ElevationProfile.svelte';
-    import FileList from '$lib/components/file-list/FileList.svelte';
+    import LibraryTree from '$lib/components/library/LibraryTree.svelte';
     import GPXStatistics from '$lib/components/GPXStatistics.svelte';
     import Map from '$lib/components/map/Map.svelte';
     import Menu from '$lib/components/Menu.svelte';
@@ -113,7 +113,7 @@
         <Menu />
         <LibraryActions />
         <div class="grow min-h-0">
-            <FileList orientation="vertical" recursive={true} />
+            <LibraryTree />
         </div>
     </div>
     <Resizer

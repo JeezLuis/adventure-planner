@@ -454,7 +454,19 @@
         "new_expedition": "Expedición",
         "new_adventure": "Aventura",
         "new_track": "Ruta",
+        "new_expedition_tooltip": "Crear una nueva expedición (un conjunto de aventuras)",
+        "new_adventure_tooltip": "Crear una nueva aventura (un conjunto de rutas)",
         "new_track_tooltip": "Crear una nueva ruta",
-        "coming_soon": "Próximamente - biblioteca en la nube"
+        "new_expedition_name": "Nueva expedición",
+        "new_adventure_name": "Nueva aventura",
+        "new_adventure_here": "Nueva aventura aquí",
+        "new_expedition_here": "Nueva expedición aquí",
+        "unsorted": "Sin clasificar",
+        "rename": "Renombrar",
+        "delete": "Eliminar",
+        "move_selected_here": "Mover aquí las rutas seleccionadas",
+        "sync": "Sincronizar",
+        "sync_tooltip": "Sincroniza tu biblioteca con la nube",
+        "sync_coming_soon": "La sincronización en la nube llegará pronto"
     }
 }

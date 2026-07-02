@@ -180,12 +180,10 @@ The full phased plan is maintained outside the repo; the shape of it:
 - **~22 inherited upstream type errors** (`svelte-check`) and Prettier violations in
   inherited files; the CI lint/type-check jobs are advisory (`continue-on-error`) until
   these are cleaned, then graduate to blocking gates.
-- **Leftover Overpass Dexie tables**: `overpasstiles`/`overpassdata` are still declared in
-  `website/src/lib/db.ts` although the feature was deleted - removing tables requires a
-  Dexie version bump, scheduled for the Phase 2 schema change.
-- **Mapillary street view carries an inherited hardcoded access token** (upstream's client
-  token in `components/map/street-view-control/mapillary.ts`), and the service is not yet
-  routed through `config.ts` - replace with our own token or remove the feature.
+- **Cloud sync is a placeholder**: the library panel's sync button only shows a toast;
+  the local library tables (`expeditions`/`adventures`/`trackPlacements`, added in Dexie
+  v2 by `website/src/lib/library/library.ts`) are the working copy that Phase 2's sync
+  engine will push to PocketBase.
 - **Icons are SVG-only**: the upstream PNG icon set was replaced by SVG assets in
   `website/static/`; some platforms (e.g. iOS home-screen icons) prefer PNG and may render
   a default icon.
