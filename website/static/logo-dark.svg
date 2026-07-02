@@ -1,6 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" role="img" aria-label="Adventure Planner">
-  <path d="M6 46 L22 18 L32 34 L40 22 L58 46 Z" fill="#7fbf9e"/>
-  <path d="M8 54 C 22 47, 38 59, 53 51" fill="none" stroke="#ff7f50" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="7 5"/>
-  <circle cx="55" cy="50" r="4.5" fill="#ff7f50"/>
-  <text x="70" y="42" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="26" font-weight="700" fill="#f3f4f6">Adventure Planner</text>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 300 64">
+  <!-- Generator: Adobe Illustrator 29.8.9, SVG Export Plug-In . SVG Version: 2.1.1 Build 1)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: #717070;
+      }
+
+      .st1 {
+        fill: #fff;
+      }
+
+      .st2 {
+        fill: #e64328;
+      }
+
+      .st3 {
+        fill: #fbc60d;
+      }
+
+      .st4 {
+        fill: #ef8025;
+      }
+    </style>
+  </defs>
+  <g>
+    <path class="st3" d="M32.9,8.8c-8.6,0-16.2,4.7-20.2,11.7h40.3c-4-7-11.5-11.7-20.2-11.7Z"/>
+    <path class="st4" d="M9.7,32.7h10.7l.8-.9.8.9h5.5l6.4-6.8,5.3,6.8h4.3l.8-.6.6.6h11.3c0-.2,0-.5,0-.7,0-4.2-1.1-8.1-3-11.5H12.7c-1.9,3.4-3,7.3-3,11.5s0,.5,0,.7Z"/>
+    <polygon class="st2" points="27.5 32.7 22 32.7 24.7 35.7 27.5 32.7"/>
+    <path class="st2" d="M53.7,42.4c1.5-2.9,2.3-6.2,2.4-9.6h-11.3l8.9,9.6Z"/>
+    <path class="st2" d="M9.7,32.7c.1,3.4.9,6.6,2.4,9.5l8.4-9.5h-10.7Z"/>
+    <polygon class="st2" points="43.4 32.7 39.2 32.7 40.8 34.9 43.4 32.7"/>
+    <polygon class="st0" points="31.5 35.1 32.1 32.7 33.1 28.8 29.4 32.7 26.1 36.3 26.9 38.7 29.1 36.7 29.8 39.3 33.5 35 31.5 35.1"/>
+    <polygon class="st0" points="20.7 34.3 13.2 42.9 17.5 40.3 17.9 41.6 21.3 38.8 19.5 38.9 20.7 34.3"/>
+    <path class="st0" d="M43.7,34l-2.2,1.6,3.8,4.7s.4-1.2-1.1-2.9l-.5-3.4Z"/>
+  </g>
+  <g>
+    <path class="st1" d="M75.4,43.6h-3.6l-.8-5.4h-3.9l-.8,5.4h-3.6l4.1-23.6h4.5l4.1,23.6ZM68.9,25.1l-1.4,9.9h3l-1.4-9.9h-.1Z"/>
+    <path class="st1" d="M89,26v11.6c0,3.9-2.1,6-5.9,6h-5.1v-23.6h5.1c3.8,0,5.9,2.1,5.9,6ZM81.5,23.3v17h1.4c1.7,0,2.5-.9,2.5-2.9v-11.2c0-2-.8-2.9-2.5-2.9h-1.4Z"/>
+    <path class="st1" d="M99.6,43.6h-4.6l-4-23.6h3.6l2.7,18h0l2.6-18h3.6l-4,23.6Z"/>
+    <path class="st1" d="M116.2,23.3h-6.5v6.7h5.2v3.3h-5.2v7h6.5v3.3h-10v-23.6h10v3.3Z"/>
+    <path class="st1" d="M130.8,43.6h-3.5l-4.7-15.6h0v15.6h-3.4v-23.6h4l4.2,14h0v-14h3.4v23.6Z"/>
+    <path class="st1" d="M144.3,23.4h-3.8v20.2h-3.6v-20.2h-3.8v-3.4h11.2v3.4Z"/>
+    <path class="st1" d="M157.4,38.3c0,3.7-2.1,5.6-5.6,5.6s-5.5-1.9-5.5-5.6v-18.3h3.4v18.2c0,1.7.8,2.4,2,2.4s2-.6,2-2.4v-18.2h3.6v18.3Z"/>
+    <path class="st1" d="M169.1,43.6l-2.8-10h-1.7v10h-3.6v-23.6h5.2c3.8,0,5.9,2.1,5.9,6v1.7c0,2.5-.9,4.2-2.5,5.2l3.3,10.7h-3.8ZM164.6,23.3v7h1.4c1.7,0,2.5-.9,2.5-2.9v-1.2c0-2-.8-2.9-2.5-2.9h-1.4Z"/>
+    <path class="st1" d="M185.5,23.3h-6.5v6.7h5.2v3.3h-5.2v7h6.5v3.3h-10v-23.6h10v3.3Z"/>
+    <path class="st1" d="M206,26v1.9c0,3.9-2.1,6-5.9,6h-1.6v9.8h-3.6v-23.6h5.2c3.8,0,5.9,2.1,5.9,6ZM198.5,23.3v7.2h1.4c1.7,0,2.5-.9,2.5-2.9v-1.4c0-2-.8-2.9-2.5-2.9h-1.4Z"/>
+    <path class="st1" d="M212.2,40.2h6v3.4h-9.5v-23.6h3.6v20.2Z"/>
+    <path class="st1" d="M231.9,43.6h-3.6l-.8-5.4h-3.9l-.8,5.4h-3.6l4.1-23.6h4.5l4.1,23.6ZM225.5,25.1l-1.4,9.9h3l-1.4-9.9h-.1Z"/>
+    <path class="st1" d="M246.1,43.6h-3.5l-4.7-15.6h0v15.6h-3.4v-23.6h4l4.2,14h0v-14h3.4v23.6Z"/>
+    <path class="st1" d="M261.5,43.6h-3.5l-4.7-15.6h0v15.6h-3.4v-23.6h4l4.2,14h0v-14h3.4v23.6Z"/>
+    <path class="st1" d="M275.4,23.3h-6.5v6.7h5.2v3.3h-5.2v7h6.5v3.3h-10v-23.6h10v3.3Z"/>
+    <path class="st1" d="M286.5,43.6l-2.8-10h-1.7v10h-3.6v-23.6h5.2c3.8,0,5.9,2.1,5.9,6v1.7c0,2.5-.9,4.2-2.5,5.2l3.3,10.7h-3.8ZM282,23.3v7h1.4c1.7,0,2.5-.9,2.5-2.9v-1.2c0-2-.8-2.9-2.5-2.9h-1.4Z"/>
+  </g>
 </svg>
