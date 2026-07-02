@@ -8,7 +8,7 @@
     import { onMount, type Snippet } from 'svelte';
     import { convertOldEmbeddingOptions } from '$lib/components/embedding/embedding';
     import { base } from '$app/paths';
-    import { languages } from '$lib/languages';
+    import { DEFAULT_LANGUAGE, languages } from '$lib/languages';
     import { browser } from '$app/environment';
     import { goto } from '$app/navigation';
     import { getURLForLanguage } from '$lib/utils';
@@ -27,7 +27,9 @@
             // convert old embedding options to new format and redirect to new embed page
             let folders = page.url.pathname.split('/');
             let locale =
-                folders.indexOf('l') >= 0 ? (folders[folders.indexOf('l') + 1] ?? 'en') : 'en';
+                folders.indexOf('l') >= 0
+                    ? (folders[folders.indexOf('l') + 1] ?? DEFAULT_LANGUAGE)
+                    : DEFAULT_LANGUAGE;
             window.location.href = `${getURLForLanguage(locale, '/embed')}?options=${encodeURIComponent(JSON.stringify(convertOldEmbeddingOptions(page.url.searchParams)))}`;
         }
     });
@@ -43,11 +45,11 @@
                         goto(`${base}/404`);
                     }
                 }
-            } else if (i18n.lang !== 'en') {
-                i18n.lang = 'en';
+            } else if (i18n.lang !== DEFAULT_LANGUAGE) {
+                i18n.lang = DEFAULT_LANGUAGE;
             }
         } else if (i18n.lang === '') {
-            i18n.lang = 'en';
+            i18n.lang = DEFAULT_LANGUAGE;
         }
     });
 

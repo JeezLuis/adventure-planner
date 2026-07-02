@@ -1,5 +1,5 @@
 import { base } from '$app/paths';
-import { languages } from '$lib/languages';
+import { DEFAULT_LANGUAGE, languages } from '$lib/languages';
 import { getURLForLanguage } from '$lib/utils';
 import { APP_NAME, APP_URL } from '$lib/brand';
 
@@ -8,7 +8,7 @@ import { APP_NAME, APP_URL } from '$lib/brand';
  * alternate-language links, PWA manifest) into every prerendered page.
  */
 export async function handle({ event, resolve }) {
-    const language = event.params.language ?? 'en';
+    const language = event.params.language ?? DEFAULT_LANGUAGE;
     const strings = await import(`./locales/${language}.json`);
 
     const path = event.url.pathname;

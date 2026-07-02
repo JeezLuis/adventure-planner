@@ -8,3 +8,9 @@ export const languages: Record<string, string> = {
     en: 'English',
     es: 'Español',
 };
+
+/**
+ * The language served at unprefixed URLs and used when none is specified.
+ * Must be a key of {@link languages}.
+ */
+export const DEFAULT_LANGUAGE = 'es';

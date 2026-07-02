@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { base } from '$app/paths';
-import { languages } from '$lib/languages';
+import { DEFAULT_LANGUAGE, languages } from '$lib/languages';
 import { TrackPoint, Waypoint, type Coordinates, crossarcDistance, distance, GPXFile } from 'gpx';
 import maplibregl from 'maplibre-gl';
 import { pointToTile, pointToTileFraction } from '@mapbox/tilebelt';
@@ -233,21 +233,21 @@ export function getURLForLanguage(lang: string, path: string): string {
 
     let languageInPath = newPath.split('/')[1];
     if (!languages.hasOwnProperty(languageInPath)) {
-        languageInPath = 'en';
+        languageInPath = DEFAULT_LANGUAGE;
     }
 
-    if (newPath === '/' && lang !== 'en') {
+    if (newPath === '/' && lang !== DEFAULT_LANGUAGE) {
         newPath = '';
     }
 
-    if (languageInPath === 'en') {
-        if (lang === 'en') {
+    if (languageInPath === DEFAULT_LANGUAGE) {
+        if (lang === DEFAULT_LANGUAGE) {
             return `${base}${newPath}`;
         } else {
             return `${base}/${lang}${newPath}`;
         }
     } else {
-        if (lang === 'en') {
+        if (lang === DEFAULT_LANGUAGE) {
             newPath = newPath.replace(`/${languageInPath}`, '');
             return newPath === '' ? `${base}/` : `${base}${newPath}`;
         } else {
