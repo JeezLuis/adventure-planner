@@ -10,7 +10,6 @@
         Undo2,
         Redo2,
         Trash2,
-        Heart,
         Map,
         Layers2,
         Box,
@@ -29,7 +28,6 @@
         File,
         View,
         FilePen,
-        HeartHandshake,
         PersonStanding,
         Eye,
         EyeOff,
@@ -40,7 +38,6 @@
         FolderOpen,
         FileStack,
         FileX,
-        BookOpenText,
         ChartArea,
         Maximize,
         Maximize2,
@@ -529,33 +526,6 @@
                 </Menubar.Content>
             </Menubar.Menu>
         </Menubar.Root>
-        <div class="h-fit flex flex-row items-center">
-            <Button
-                variant="ghost"
-                href="./help"
-                target="_blank"
-                class="cursor-default h-fit rounded-md px-3 py-0.5"
-                aria-label={i18n._('menu.help')}
-            >
-                <BookOpenText size="18" class="md:hidden" />
-                <span class="hidden md:block">
-                    {i18n._('menu.help')}
-                </span>
-            </Button>
-            <Button
-                variant="ghost"
-                href="https://opencollective.com/gpxstudio"
-                target="_blank"
-                class="cursor-default h-fit rounded-md font-bold text-support hover:text-support px-3 py-0.5"
-                aria-label={i18n._('menu.donate')}
-            >
-                <HeartHandshake size="18" class="md:hidden" />
-                <span class="hidden md:flex flex-row items-center">
-                    {i18n._('menu.donate')}
-                    <Heart size="16" class="ml-1" fill="var(--support)" />
-                </span>
-            </Button>
-        </div>
     </div>
 </div>
 

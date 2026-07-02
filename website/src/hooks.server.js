@@ -12,14 +12,6 @@ export async function handle({ event, resolve }) {
     let title = strings.metadata[`${page}_title`];
     const description = strings.metadata[`description`];
 
-    if (page === 'help' && event.params.guide) {
-        const [guide, subguide] = event.params.guide.split('/');
-        const guideModule = subguide
-            ? await import(`./lib/docs/${language}/${guide}/${subguide}.mdx`)
-            : await import(`./lib/docs/${language}/${guide}.mdx`);
-        title = `${title} | ${guideModule.metadata.title}`;
-    }
-
     const htmlTag = `<html lang="${language}" translate="no">`;
 
     let headTag = `<head>

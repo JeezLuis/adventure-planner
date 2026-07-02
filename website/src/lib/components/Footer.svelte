@@ -3,7 +3,7 @@
     import LanguageSelect from '$lib/components/LanguageSelect.svelte';
     import ModeSwitch from '$lib/components/ModeSwitch.svelte';
     import Logo from '$lib/components/Logo.svelte';
-    import { AtSign, BookOpenText, Heart, House, Map } from '@lucide/svelte';
+    import { AtSign, Heart, House, Map } from '@lucide/svelte';
     import { i18n } from '$lib/i18n.svelte';
     import { getURLForLanguage } from '$lib/utils';
 </script>
@@ -44,14 +44,6 @@
                 >
                     <Map size="16" />
                     {i18n._('homepage.app')}
-                </Button>
-                <Button
-                    variant="link"
-                    class="h-6 px-0 has-[>svg]:px-0 text-muted-foreground"
-                    href={getURLForLanguage(i18n.lang, '/help')}
-                >
-                    <BookOpenText size="16" />
-                    {i18n._('menu.help')}
                 </Button>
             </div>
             <div class="flex flex-col items-start gap-1" id="contact">

@@ -14,12 +14,8 @@
     import { getURLForLanguage } from '$lib/utils';
 
     let {
-        data,
         children,
     }: {
-        data: {
-            guideTitles: Record<string, string>;
-        };
         children: Snippet;
     } = $props();
 
@@ -56,12 +52,7 @@
 
     $effect(() => {
         if (i18n.isLoading) return;
-        let title = `gpx.studio — ${i18n._(`metadata.${page.route.id?.replace('/[[language]]', '').split('/')[1] ?? 'home'}_title`)}`;
-        if (page.params.guide) {
-            document.title = `${title} | ${data.guideTitles[page.params.guide]}`;
-        } else {
-            document.title = title;
-        }
+        document.title = `gpx.studio — ${i18n._(`metadata.${page.route.id?.replace('/[[language]]', '').split('/')[1] ?? 'home'}_title`)}`;
     });
 
     let showNavAndFooter = $derived(page.route.id === null || !appRoutes.includes(page.route.id));

@@ -2,7 +2,7 @@
     import { Button } from '$lib/components/ui/button';
     import Logo from '$lib/components/Logo.svelte';
     import { getURLForLanguage } from '$lib/utils';
-    import { House, Map, BookOpenText } from '@lucide/svelte';
+    import { House, Map } from '@lucide/svelte';
     import { i18n } from '$lib/i18n.svelte';
 </script>
 
@@ -25,13 +25,6 @@
         >
             <Map size="18" />
             {i18n._('homepage.app')}
-        </Button>
-        <Button
-            href={getURLForLanguage(i18n.lang, '/help')}
-            class="text-base w-1/4 min-w-fit rounded-full"
-        >
-            <BookOpenText size="18" />
-            <span>{i18n._('menu.help')}</span>
         </Button>
     </div>
 </div>

@@ -40,7 +40,6 @@
         "events": "^3.3.0",
         "glob": "^11.0.2",
         "lucide-static": "^0.513.0",
-        "mdsvex": "^0.12.6",
         "mode-watcher": "^1.1.0",
         "paneforge": "^1.0.0-next.5",
         "postcss": "^8.4.47",
