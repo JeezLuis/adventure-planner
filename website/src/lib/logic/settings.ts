@@ -236,7 +236,6 @@ export const settings = {
         undefined,
         getValueValidator(['slope', 'surface', 'highway', undefined], undefined)
     ),
-    treeFileView: new Setting<boolean>('fileView', false),
     minimizeRoutingMenu: new Setting('minimizeRoutingMenu', false),
     routing: new Setting('routing', true),
     routingProfile: new Setting<RoutingProfile>(
@@ -301,7 +300,10 @@ export const settings = {
     defaultOpacity: new Setting('defaultOpacity', 0.7),
     defaultWidth: new Setting('defaultWidth', browser && window.innerWidth < 600 ? 8 : 5),
     bottomPanelSize: new Setting('bottomPanelSize', 170),
-    rightPanelSize: new Setting('rightPanelSize', 240),
+    /** Whether the track-info panel (statistics + elevation profile) is expanded. */
+    bottomPanelVisible: new Setting('bottomPanelVisible', true),
+    /** Width in pixels of the permanent library panel on the left. */
+    leftPanelSize: new Setting('leftPanelSize', 300),
     connectToDatabase(db: Database) {
         for (const key in settings) {
             const setting = (settings as any)[key];

@@ -39,7 +39,7 @@
 
 {#if $currentTool !== null}
     <div
-        class="translate-y-1 max-h-full animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 {className}"
+        class="translate-x-1 max-h-full animate-in fade-in-0 zoom-in-95 slide-in-from-left-2 {className}"
     >
         <div class="rounded-md shadow-md pointer-events-auto">
             <Card.Root class="rounded-md border-none py-2.5">

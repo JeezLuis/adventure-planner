@@ -1,4 +1,4 @@
-# ADR 0006 — Product model (Expedition ▸ Adventure ▸ Track) and sync design
+# ADR 0006 - Product model (Expedition ▸ Adventure ▸ Track) and sync design
 
 ## Status
 
@@ -15,29 +15,29 @@ see ARCHITECTURE.md) offers a natural attachment point for synchronisation.
 
 **Hierarchy** (strict tree, per user):
 
-- **Expedition** — a set of adventures; expeditions can nest (expeditions and/or
+- **Expedition** - a set of adventures; expeditions can nest (expeditions and/or
   adventures inside).
-- **Adventure** — a set of tracks; adventures do **not** nest. May live inside an
+- **Adventure** - a set of tracks; adventures do **not** nest. May live inside an
   expedition or at root.
-- **Track** — one GPX file; every track lives in **exactly one** adventure. New or
+- **Track** - one GPX file; every track lives in **exactly one** adventure. New or
   imported tracks land in the currently selected adventure, else in an auto-created
   per-user "Unsorted" adventure.
 
 **Selection drives the map**: whatever is selected in the left tree is what renders and is
-editable — a track, an adventure (all its tracks), an expedition (everything beneath it,
+editable - a track, an adventure (all its tracks), an expedition (everything beneath it,
 recursively), or any multi-selection.
 
 **Login required**: the app is gated behind Google sign-in (PocketBase OAuth2 popup flow)
 once the library ships. No anonymous mode is maintained, so sync can be **automatic for
-everything** — no save button; a per-item badge shows sync state (synced / pending /
+everything** - no save button; a per-item badge shows sync state (synced / pending /
 offline-edited / conflict).
 
-**Sync policy — last-write-wins with a baseline check**: pushes hook
+**Sync policy - last-write-wins with a baseline check**: pushes hook
 `commitFileStateChange()` (mark dirty, debounce, upload `buildGPX()` output). Before
 uploading, the record's server `updated` timestamp is compared with the stored baseline;
 on mismatch the sync pauses and the user chooses Overwrite / Load newer / Keep both. No
 content merging. Undo/redo (Immer patches) stays 100% local. Cloud **pulls write directly
-to Dexie** rather than going through `fileActions` — this avoids re-marking the file dirty
+to Dexie** rather than going through `fileActions` - this avoids re-marking the file dirty
 (an echo loop) and avoids polluting local undo history.
 
 ## Consequences

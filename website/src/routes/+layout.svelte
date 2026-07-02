@@ -53,7 +53,7 @@
 
     $effect(() => {
         if (i18n.isLoading) return;
-        document.title = `${APP_NAME} — ${i18n._(`metadata.${page.route.id?.replace('/[[language]]', '').split('/')[1] ?? 'home'}_title`)}`;
+        document.title = `${APP_NAME} - ${i18n._(`metadata.${page.route.id?.replace('/[[language]]', '').split('/')[1] ?? 'home'}_title`)}`;
     });
 
     let showNavAndFooter = $derived(page.route.id === null || !appRoutes.includes(page.route.id));

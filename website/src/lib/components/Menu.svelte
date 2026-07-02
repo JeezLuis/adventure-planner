@@ -76,7 +76,6 @@
         velocityUnits,
         temperatureUnits,
         elevationProfile,
-        treeFileView,
         currentBasemap,
         previousBasemap,
         currentOverlays,
@@ -121,13 +120,11 @@
     });
 </script>
 
-<div class="absolute md:top-2 left-0 right-0 z-20 flex flex-row justify-center pointer-events-none">
-    <div
-        class="w-fit flex flex-row items-center justify-center p-1 bg-background rounded-b-md md:rounded-md pointer-events-auto shadow-md"
-    >
-        <a href={getURLForLanguage(i18n.lang, '/')} target="_blank" class="shrink-0">
-            <Logo class="h-5 mt-0.5 mx-2 md:hidden" iconOnly={true} width="16" />
-            <Logo class="h-5 mt-0.5 mx-2 hidden md:block" width="96" />
+<!-- Menu bar integrated at the top of the library panel. -->
+<div class="w-full flex flex-row items-center p-1 border-b bg-background">
+    <div class="w-full flex flex-row items-center">
+        <a href={getURLForLanguage(i18n.lang, '/app')} class="shrink-0">
+            <Logo class="h-5 mt-0.5 mx-2" iconOnly={true} width="18" />
         </a>
         <Menubar.Root class="border-none shadow-none h-fit p-0">
             <Menubar.Menu>
@@ -257,37 +254,30 @@
                         {/if}
                         <Shortcut key="H" ctrl={true} />
                     </Menubar.Item>
-                    {#if $treeFileView}
-                        {#if $selection.getSelected().some((item) => item instanceof ListFileItem)}
-                            <Menubar.Separator />
-                            <Menubar.Item
-                                onclick={() =>
-                                    fileActions.addNewTrack(
-                                        $selection.getSelected()[0].getFileId()
-                                    )}
-                                disabled={$selection.size !== 1}
-                            >
-                                <Plus size="16" />
-                                {i18n._('menu.new_track')}
-                            </Menubar.Item>
-                        {:else if $selection
-                            .getSelected()
-                            .some((item) => item instanceof ListTrackItem)}
-                            <Menubar.Separator />
-                            <Menubar.Item
-                                onclick={() => {
-                                    let item = $selection.getSelected()[0];
-                                    fileActions.addNewSegment(
-                                        item.getFileId(),
-                                        item.getTrackIndex()
-                                    );
-                                }}
-                                disabled={$selection.size !== 1}
-                            >
-                                <Plus size="16" />
-                                {i18n._('menu.new_segment')}
-                            </Menubar.Item>
-                        {/if}
+                    {#if $selection.getSelected().some((item) => item instanceof ListFileItem)}
+                        <Menubar.Separator />
+                        <Menubar.Item
+                            onclick={() =>
+                                fileActions.addNewTrack($selection.getSelected()[0].getFileId())}
+                            disabled={$selection.size !== 1}
+                        >
+                            <Plus size="16" />
+                            {i18n._('menu.new_track')}
+                        </Menubar.Item>
+                    {:else if $selection
+                        .getSelected()
+                        .some((item) => item instanceof ListTrackItem)}
+                        <Menubar.Separator />
+                        <Menubar.Item
+                            onclick={() => {
+                                let item = $selection.getSelected()[0];
+                                fileActions.addNewSegment(item.getFileId(), item.getTrackIndex());
+                            }}
+                            disabled={$selection.size !== 1}
+                        >
+                            <Plus size="16" />
+                            {i18n._('menu.new_segment')}
+                        </Menubar.Item>
                     {/if}
                     <Menubar.Separator />
                     <Menubar.Item
@@ -310,38 +300,36 @@
                         {i18n._('menu.center')}
                         <Shortcut key="⏎" ctrl={true} />
                     </Menubar.Item>
-                    {#if $treeFileView}
-                        <Menubar.Separator />
-                        <Menubar.Item
-                            onclick={() => selection.copySelection()}
-                            disabled={$selection.size === 0}
-                        >
-                            <ClipboardCopy size="16" />
-                            {i18n._('menu.copy')}
-                            <Shortcut key="C" ctrl={true} />
-                        </Menubar.Item>
-                        <Menubar.Item
-                            onclick={() => selection.cutSelection()}
-                            disabled={$selection.size === 0}
-                        >
-                            <Scissors size="16" />
-                            {i18n._('menu.cut')}
-                            <Shortcut key="X" ctrl={true} />
-                        </Menubar.Item>
-                        <Menubar.Item
-                            disabled={$copied === undefined ||
-                                $copied.length === 0 ||
-                                ($selection.size > 0 &&
-                                    !allowedPastes[$copied[0].level].includes(
-                                        $selection.getSelected().pop()!.level
-                                    ))}
-                            onclick={pasteSelection}
-                        >
-                            <ClipboardPaste size="16" />
-                            {i18n._('menu.paste')}
-                            <Shortcut key="V" ctrl={true} />
-                        </Menubar.Item>
-                    {/if}
+                    <Menubar.Separator />
+                    <Menubar.Item
+                        onclick={() => selection.copySelection()}
+                        disabled={$selection.size === 0}
+                    >
+                        <ClipboardCopy size="16" />
+                        {i18n._('menu.copy')}
+                        <Shortcut key="C" ctrl={true} />
+                    </Menubar.Item>
+                    <Menubar.Item
+                        onclick={() => selection.cutSelection()}
+                        disabled={$selection.size === 0}
+                    >
+                        <Scissors size="16" />
+                        {i18n._('menu.cut')}
+                        <Shortcut key="X" ctrl={true} />
+                    </Menubar.Item>
+                    <Menubar.Item
+                        disabled={$copied === undefined ||
+                            $copied.length === 0 ||
+                            ($selection.size > 0 &&
+                                !allowedPastes[$copied[0].level].includes(
+                                    $selection.getSelected().pop()!.level
+                                ))}
+                        onclick={pasteSelection}
+                    >
+                        <ClipboardPaste size="16" />
+                        {i18n._('menu.paste')}
+                        <Shortcut key="V" ctrl={true} />
+                    </Menubar.Item>
                     <Menubar.Separator />
                     <Menubar.Item
                         onclick={() => tick().then(fileActions.deleteSelection)}
@@ -363,11 +351,6 @@
                         <ChartArea size="16" />
                         {i18n._('menu.elevation_profile')}
                         <Shortcut key="P" ctrl={true} />
-                    </Menubar.CheckboxItem>
-                    <Menubar.CheckboxItem bind:checked={$treeFileView}>
-                        <ListTree size="16" />
-                        {i18n._('menu.tree_file_view')}
-                        <Shortcut key="L" ctrl={true} />
                     </Menubar.CheckboxItem>
                     <Menubar.Separator />
                     <Menubar.Item inset onclick={switchBasemaps}>
@@ -596,9 +579,6 @@
             e.preventDefault();
         } else if (e.key === 'p' && (e.metaKey || e.ctrlKey)) {
             $elevationProfile = !$elevationProfile;
-            e.preventDefault();
-        } else if (e.key === 'l' && (e.metaKey || e.ctrlKey)) {
-            $treeFileView = !$treeFileView;
             e.preventDefault();
         } else if (e.key === 'h' && (e.metaKey || e.ctrlKey)) {
             if ($allHidden) {

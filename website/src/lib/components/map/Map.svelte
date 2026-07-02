@@ -75,6 +75,8 @@
 
     div :global(.maplibregl-map) {
         @apply font-sans;
+        /* Space around the globe at low zoom: a clear sky blue. */
+        background-color: #a8d4f0;
     }
 
     div :global(.maplibregl-ctrl-top-right > .maplibregl-ctrl) {

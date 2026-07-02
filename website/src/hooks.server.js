@@ -20,7 +20,7 @@ export async function handle({ event, resolve }) {
     const htmlTag = `<html lang="${language}" translate="no">`;
 
     let headTag = `<head>
-    <title>${APP_NAME} — ${title}</title>
+    <title>${APP_NAME} - ${title}</title>
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -30,7 +30,7 @@ export async function handle({ event, resolve }) {
     }
     </script>
     <meta name="description" content="${description}" />
-    <meta property="og:title" content="${APP_NAME} — ${title}" />
+    <meta property="og:title" content="${APP_NAME} - ${title}" />
     <meta property="og:description" content="${description}" />
     <meta property="og:url" content="${APP_URL}/" />
     <meta property="og:type" content="website" />

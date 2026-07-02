@@ -16,7 +16,7 @@ const { routing, routingProfile } = settings;
 /**
  * A selectable routing activity. `profile` is the name of a BRouter profile
  * that must exist on the routing server (standard profiles plus the ones we
- * deploy ourselves — see infra/ BRouter provisioning).
+ * deploy ourselves; see infra/ BRouter provisioning).
  */
 export type RoutingProfile = {
     profile: string;
@@ -25,7 +25,7 @@ export type RoutingProfile = {
 /**
  * Maps the activity keys shown in the routing tool UI to BRouter profiles.
  * The keys are also i18n keys (`toolbar.routing.activities.<key>`) and stored
- * user settings — renaming a key invalidates saved preferences.
+ * user settings - renaming a key invalidates saved preferences.
  */
 export const routingProfiles: { [key: string]: RoutingProfile } = {
     bike: { profile: 'trekking' },

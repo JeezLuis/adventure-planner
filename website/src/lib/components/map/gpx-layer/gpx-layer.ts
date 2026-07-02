@@ -111,7 +111,7 @@ export function getSvgForSymbol(symbol?: string | undefined, layerColor?: string
     </svg>`;
 }
 
-const { directionMarkers, treeFileView, defaultOpacity, defaultWidth } = settings;
+const { directionMarkers, defaultOpacity, defaultWidth } = settings;
 
 export class GPXLayer {
     fileId: string;
@@ -505,7 +505,7 @@ export class GPXLayer {
         }
 
         let item = undefined;
-        if (get(treeFileView) && file.getSegments().length > 1) {
+        if (file.getSegments().length > 1) {
             // Select inner item
             item =
                 file.children[trackIndex].children.length > 1
@@ -567,25 +567,14 @@ export class GPXLayer {
                     selectedWaypoint.set([waypoint, this.fileId]);
                 }
             } else {
-                if (get(treeFileView)) {
-                    selection.selectItem(new ListWaypointItem(this.fileId, waypointIndex));
-                } else {
-                    selection.selectItem(new ListFileItem(this.fileId));
-                }
+                selection.selectItem(new ListWaypointItem(this.fileId, waypointIndex));
                 selectedWaypoint.set([waypoint, this.fileId]);
             }
         } else {
-            if (get(treeFileView)) {
-                if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey) && this.selected) {
-                    selection.addSelectItem(new ListWaypointItem(this.fileId, waypointIndex));
-                } else {
-                    selection.selectItem(new ListWaypointItem(this.fileId, waypointIndex));
-                }
+            if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey) && this.selected) {
+                selection.addSelectItem(new ListWaypointItem(this.fileId, waypointIndex));
             } else {
-                if (!this.selected) {
-                    selection.selectItem(new ListFileItem(this.fileId));
-                }
-                waypointPopup?.setItem({ item: waypoint, fileId: this.fileId });
+                selection.selectItem(new ListWaypointItem(this.fileId, waypointIndex));
             }
         }
     }

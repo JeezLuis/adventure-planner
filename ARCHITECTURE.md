@@ -40,7 +40,7 @@ planned cloud backend will attach. Decisions and their trade-offs live in
 
 There is **no server code of our own yet**: the website builds with
 `@sveltejs/adapter-static` and every page is prerendered. All state lives in the browser
-(IndexedDB). A PocketBase backend (auth, cloud library, sync) is planned — see the roadmap
+(IndexedDB). A PocketBase backend (auth, cloud library, sync) is planned - see the roadmap
 below.
 
 ## Repository layout
@@ -86,7 +86,7 @@ All GPX file mutations funnel through a single choke point:
 
 **`commitFileStateChange()` is the future cloud-sync seam.** Every persisted change to
 every file passes through this one method, so the Phase 2 sync engine hooks here to mark
-records dirty and schedule uploads — no other code path needs instrumenting. Conversely,
+records dirty and schedule uploads - no other code path needs instrumenting. Conversely,
 cloud *pulls* will write directly to Dexie (not through `fileActions`), so a remote update
 re-renders the UI through the same `liveQuery` path without creating patches (which would
 pollute undo history) or re-marking the file dirty (which would echo the change back up).
@@ -128,7 +128,7 @@ GraphHopper routing client, and the private-roads toggle (no BRouter equivalent)
 Behavioural quirks of the `gpx/` library that are easy to trip over (all pinned down by
 the test suites in `gpx/tests/`):
 
-- **`buildGPX(file, exclude)` has no default for `exclude`** — always pass `[]` unless you
+- **`buildGPX(file, exclude)` has no default for `exclude`** - always pass `[]` unless you
   really want to exclude data fields.
 - **Serialization is only idempotent from the second rebuild.** `parseGPX` uses
   fast-xml-parser's `removeNSPrefix`, so a fixture's `xsi:schemaLocation` comes back as a
@@ -150,10 +150,10 @@ the test suites in `gpx/tests/`):
   so coding sessions physically cannot exfiltrate secrets.
 - CI (`.github/workflows/ci.yml`): a **gitleaks scan over the full history is a hard
   gate**; build + gpx tests are blocking; lint, `svelte-check`, and `npm audit` run as
-  advisory (non-blocking) jobs — see known debt.
+  advisory (non-blocking) jobs - see known debt.
 - `PUBLIC_*` env vars are client-visible by design and are **not** secrets; the MapTiler
   key is restricted by origin in the MapTiler dashboard instead. Any real secret that is
-  ever committed must be rotated immediately — history rewriting is not sufficient.
+  ever committed must be rotated immediately - history rewriting is not sufficient.
 - Brand identity is centralised in `website/src/lib/brand.ts` (`APP_NAME`, `APP_URL`,
   `REPOSITORY_URL`, upstream attribution). `APP_URL` is a placeholder until the
   production domain exists (Phase 1).
@@ -162,17 +162,17 @@ the test suites in `gpx/tests/`):
 
 The full phased plan is maintained outside the repo; the shape of it:
 
-- **Phase 0 — done.** Fork boots locally on free endpoints: MapTiler basemaps, BRouter
+- **Phase 0 - done.** Fork boots locally on free endpoints: MapTiler basemaps, BRouter
   routing, AWS elevation tiles; pruning, rebrand, gpx tests, CI, security baseline.
-- **Phase 1 — VPS + PocketBase + Google login.** Single Hetzner VPS running Caddy,
+- **Phase 1 - VPS + PocketBase + Google login.** Single Hetzner VPS running Caddy,
   PocketBase (Google OAuth via popup, SQLite, GPX file storage), and self-hosted BRouter;
   frontend on Cloudflare Pages; infrastructure as code in `infra/`.
-- **Phase 2 — the library (the actual product).** Expedition ▸ Adventure ▸ Track tree in
+- **Phase 2 - the library (the actual product).** Expedition ▸ Adventure ▸ Track tree in
   a left panel; **selection drives what renders on the map**; login required; automatic
   sync (last-write-wins with a baseline check and a conflict prompt) hooked into
   `commitFileStateChange()`; per-item sync badges; Dexie schema v2 drops the leftover
   Overpass tables. See [ADR 0006](docs/decisions/0006-product-model-and-sync.md).
-- **Phase 3 — polish.** Standalone POIs, share links (the `/embed` route is kept for
+- **Phase 3 - polish.** Standalone POIs, share links (the `/embed` route is kept for
   this), PocketBase realtime, mobile pass, continued refactoring of inherited modules.
 
 ## Known debt
@@ -181,11 +181,11 @@ The full phased plan is maintained outside the repo; the shape of it:
   inherited files; the CI lint/type-check jobs are advisory (`continue-on-error`) until
   these are cleaned, then graduate to blocking gates.
 - **Leftover Overpass Dexie tables**: `overpasstiles`/`overpassdata` are still declared in
-  `website/src/lib/db.ts` although the feature was deleted — removing tables requires a
+  `website/src/lib/db.ts` although the feature was deleted - removing tables requires a
   Dexie version bump, scheduled for the Phase 2 schema change.
 - **Mapillary street view carries an inherited hardcoded access token** (upstream's client
   token in `components/map/street-view-control/mapillary.ts`), and the service is not yet
-  routed through `config.ts` — replace with our own token or remove the feature.
+  routed through `config.ts` - replace with our own token or remove the feature.
 - **Icons are SVG-only**: the upstream PNG icon set was replaced by SVG assets in
   `website/static/`; some platforms (e.g. iOS home-screen icons) prefer PNG and may render
   a default icon.

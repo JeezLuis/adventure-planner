@@ -56,10 +56,8 @@
                     : ''
     );
 
-    const { treeFileView } = settings;
-
     $effect(() => {
-        if (collapsible && $treeFileView && $selection.hasAnyChildren(item, false)) {
+        if (collapsible && $selection.hasAnyChildren(item, false)) {
             collapsible.openNode();
         }
     });

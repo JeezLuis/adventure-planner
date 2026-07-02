@@ -8,7 +8,7 @@
  * anywhere in the codebase.
  *
  * Note: `PUBLIC_*` variables are baked into the client bundle by SvelteKit and
- * are therefore visible to every visitor — they must never contain secrets.
+ * are therefore visible to every visitor - they must never contain secrets.
  */
 import { PUBLIC_BROUTER_URL, PUBLIC_ELEVATION_TILE_URL } from '$env/static/public';
 

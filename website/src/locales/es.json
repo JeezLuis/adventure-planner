@@ -30,7 +30,6 @@
         "select_all": "Seleccionar todo",
         "view": "Vista",
         "elevation_profile": "Perfil de altura",
-        "tree_file_view": "Árbol de archivos",
         "switch_basemap": "Cambiar al mapa base anterior",
         "toggle_overlays": "Alternar capas",
         "toggle_3d": "Alternar 3D",
@@ -76,7 +75,9 @@
         "center": "Centrar",
         "open_in": "Abrir en",
         "copy_coordinates": "Copiar coordenadas",
-        "edit_osm": "Editar en OpenStreetMap"
+        "edit_osm": "Editar en OpenStreetMap",
+        "collapse": "Contraer panel",
+        "expand": "Expandir panel"
     },
     "toolbar": {
         "routing": {
@@ -448,5 +449,12 @@
     },
     "webgl2_required": "Se requiere WebGL 2 para visualizar el mapa.",
     "enable_webgl2": "Aprenda cómo activar WebGL 2 en su navegador",
-    "page_not_found": "página no encontrada"
+    "page_not_found": "página no encontrada",
+    "library": {
+        "new_expedition": "Expedición",
+        "new_adventure": "Aventura",
+        "new_track": "Ruta",
+        "new_track_tooltip": "Crear una nueva ruta",
+        "coming_soon": "Próximamente - biblioteca en la nube"
+    }
 }

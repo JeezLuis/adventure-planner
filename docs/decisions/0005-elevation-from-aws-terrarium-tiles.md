@@ -1,4 +1,4 @@
-# ADR 0005 — Elevation from keyless AWS terrarium tiles, decoded client-side
+# ADR 0005 - Elevation from keyless AWS terrarium tiles, decoded client-side
 
 ## Status
 
@@ -12,10 +12,10 @@ from its private infrastructure.
 
 Alternatives considered:
 
-- **MapTiler terrain tiles** — would work with the key we already have, but every
+- **MapTiler terrain tiles** - would work with the key we already have, but every
   elevation lookup and every 3D-terrain tile would consume the same 100K-requests/month
   free-tier quota as the basemaps (ADR 0004).
-- **An elevation API** (e.g. Open-Elevation, Open Topo Data) — introduces per-request rate
+- **An elevation API** (e.g. Open-Elevation, Open Topo Data) - introduces per-request rate
   limits and another service dependency for what is fundamentally static raster data.
 
 ## Decision
@@ -35,7 +35,7 @@ The same tile set serves both consumers:
 ## Consequences
 
 - No API key, no quota, no rate limits, and no load on the MapTiler allowance.
-- The dataset is static (no new data since Mapzen's demise) — fine for terrain, which
+- The dataset is static (no new data since Mapzen's demise) - fine for terrain, which
   barely changes at these resolutions.
 - Decoding is client-side; a failed tile load yields an elevation of 0 for the affected
   points rather than an error.

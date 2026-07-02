@@ -30,7 +30,6 @@
         "select_all": "Select all",
         "view": "View",
         "elevation_profile": "Elevation profile",
-        "tree_file_view": "File tree",
         "switch_basemap": "Switch to previous basemap",
         "toggle_overlays": "Toggle overlays",
         "toggle_3d": "Toggle 3D",
@@ -76,7 +75,9 @@
         "center": "Center",
         "open_in": "Open in",
         "copy_coordinates": "Copy coordinates",
-        "edit_osm": "Edit in OpenStreetMap"
+        "edit_osm": "Edit in OpenStreetMap",
+        "collapse": "Collapse panel",
+        "expand": "Expand panel"
     },
     "toolbar": {
         "routing": {
@@ -448,5 +449,12 @@
     },
     "webgl2_required": "WebGL 2 is required to display the map.",
     "enable_webgl2": "Learn how to enable WebGL 2 in your browser",
-    "page_not_found": "page not found"
+    "page_not_found": "page not found",
+    "library": {
+        "new_expedition": "Expedition",
+        "new_adventure": "Adventure",
+        "new_track": "Track",
+        "new_track_tooltip": "Create a new track",
+        "coming_soon": "Coming soon - cloud library"
+    }
 }

@@ -1,4 +1,4 @@
-# ADR 0002 — PocketBase on a single VPS as the backend
+# ADR 0002 - PocketBase on a single VPS as the backend
 
 ## Status
 
@@ -7,22 +7,22 @@ Accepted (2026-07). To be implemented in Phase 1.
 ## Context
 
 The cloud library (ADR 0006) needs authentication (Google sign-in), a database for the
-Expedition/Adventure/Track tree, and storage for GPX files — at hobby-scale cost
+Expedition/Adventure/Track tree, and storage for GPX files - at hobby-scale cost
 (target ~€6/month total) and without vendor lock-in, since paid features may come later.
 
 Alternatives considered:
 
-- **Supabase** — good feature fit, but the free tier pauses projects after 7 days of
+- **Supabase** - good feature fit, but the free tier pauses projects after 7 days of
   inactivity and has a 1 GB storage ceiling; the first paid tier is a step change in cost.
-- **Firebase** — requires the Blaze plan (credit card) for realistic use and creates
+- **Firebase** - requires the Blaze plan (credit card) for realistic use and creates
   significant lock-in (proprietary APIs, hard data egress).
-- **Cloudflare stack (Workers/D1/R2)** — cheap, but authentication and file handling must
+- **Cloudflare stack (Workers/D1/R2)** - cheap, but authentication and file handling must
   be assembled by hand from parts; more moving pieces to own.
 
 ## Decision
 
-**PocketBase** — a single Go binary providing Google OAuth out of the box, an embedded
-SQLite database, file fields for GPX storage, and an admin UI — deployed on a **Hetzner
+**PocketBase** - a single Go binary providing Google OAuth out of the box, an embedded
+SQLite database, file fields for GPX storage, and an admin UI - deployed on a **Hetzner
 CX22 VPS (€4.49/month)** behind Caddy, alongside the self-hosted BRouter instance
 (ADR 0003). Schema changes are versioned as `pb_migrations/` in git; backups go to
 Cloudflare R2.

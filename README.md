@@ -5,14 +5,14 @@
 
 **Adventure Planner** is a web app for planning outdoor adventures: create, edit, and organize GPX tracks on topographic and satellite maps, with routing that follows roads and trails.
 
-It is a hard fork of [gpx.studio](https://github.com/gpxstudio/gpx.studio) (MIT license — see [LICENSE](LICENSE) and [ATTRIBUTIONS.md](ATTRIBUTIONS.md)), forked at commit `fde6bafc1052edf94854e942cb7b2b073aedbd8b`, extended with a cloud library (Expeditions ▸ Adventures ▸ Tracks), Google sign-in, and automatic sync.
+It is a hard fork of [gpx.studio](https://github.com/gpxstudio/gpx.studio) (MIT license - see [LICENSE](LICENSE) and [ATTRIBUTIONS.md](ATTRIBUTIONS.md)), forked at commit `fde6bafc1052edf94854e942cb7b2b073aedbd8b`, extended with a cloud library (Expeditions ▸ Adventures ▸ Tracks), Google sign-in, and automatic sync.
 
 ## Repository structure
 
-- [`gpx/`](gpx/) — TypeScript library for parsing, manipulating, and serializing GPX files (with tests).
-- [`website/`](website/) — the SvelteKit app (static build).
-- [`docs/decisions/`](docs/decisions/) — architecture decision records.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — how the system fits together.
+- [`gpx/`](gpx/) - TypeScript library for parsing, manipulating, and serializing GPX files (with tests).
+- [`website/`](website/) - the SvelteKit app (static build).
+- [`docs/decisions/`](docs/decisions/) - architecture decision records.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) - how the system fits together.
 
 ## Development
 
@@ -31,7 +31,7 @@ npm install
 npm run dev
 ```
 
-> **Security note:** `.env` files hold your keys and are git-ignored — never commit them. Only `.env.example` (placeholders) belongs in git. CI runs a secret scan (gitleaks) on every push.
+> **Security note:** `.env` files hold your keys and are git-ignored - never commit them. Only `.env.example` (placeholders) belongs in git. CI runs a secret scan (gitleaks) on every push.
 
 ## External services
 
@@ -46,4 +46,4 @@ All map/routing services are configured through environment variables (see [`web
 
 ## License
 
-MIT. Based on [gpx.studio](https://github.com/gpxstudio/gpx.studio), © gpx.studio contributors — the original license and copyright notice are preserved in [LICENSE](LICENSE).
+MIT. Based on [gpx.studio](https://github.com/gpxstudio/gpx.studio), © gpx.studio contributors - the original license and copyright notice are preserved in [LICENSE](LICENSE).

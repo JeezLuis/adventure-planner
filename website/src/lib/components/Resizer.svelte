@@ -4,11 +4,14 @@
         after = $bindable(),
         minAfter = 0,
         maxAfter = Number.MAX_SAFE_INTEGER,
+        invert = false,
     }: {
         orientation?: 'col' | 'row';
         after: number;
         minAfter?: number;
         maxAfter?: number;
+        /** Set when the resized element sits BEFORE the handle (e.g. a left panel). */
+        invert?: boolean;
     } = $props();
 
     function handleMouseDown(event: PointerEvent) {
@@ -17,9 +20,8 @@
         const startAfter = after;
 
         const handleMouseMove = (event: PointerEvent) => {
-            const newAfter =
-                startAfter +
-                (orientation === 'col' ? startX - event.clientX : startY - event.clientY);
+            const delta = orientation === 'col' ? startX - event.clientX : startY - event.clientY;
+            const newAfter = startAfter + (invert ? -delta : delta);
             if (newAfter >= minAfter && newAfter <= maxAfter) {
                 after = newAfter;
             } else if (newAfter < minAfter && after !== minAfter) {

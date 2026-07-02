@@ -10,7 +10,7 @@
  *
  * Users can still add their own layers (basemaps or overlays) through the
  * custom-layers UI, and browser extensions can register overlays through the
- * extension API — both mechanisms mutate `overlays`/`overlayTree` at runtime,
+ * extension API - both mechanisms mutate `overlays`/`overlayTree` at runtime,
  * which is why those objects are kept even though no built-in overlays exist.
  */
 import { type RasterDEMSourceSpecification, type StyleSpecification } from 'maplibre-gl';
@@ -25,7 +25,7 @@ export const maptilerKeyPlaceHolder = 'MAPTILER_KEY';
 
 /**
  * The three selectable basemaps. Keys are also i18n label keys
- * (`layers.label.<key>`) and are persisted in user settings — renaming a key
+ * (`layers.label.<key>`) and are persisted in user settings - renaming a key
  * resets affected users to the default basemap (handled by the settings
  * validator).
  */
@@ -66,7 +66,7 @@ export const fallbackBasemapStyle: StyleSpecification = {
 };
 
 /**
- * Built-in overlay catalog. Intentionally empty — overlays only exist as
+ * Built-in overlay catalog. Intentionally empty - overlays only exist as
  * user-defined custom layers or extension-registered layers, which are added
  * to this object at runtime.
  */
@@ -134,7 +134,7 @@ export type CustomLayer = {
 /**
  * Elevation data sources usable for 3D terrain. The single source is the
  * keyless terrarium-encoded tile set configured in `$lib/config` (AWS Open
- * Data Terrain Tiles by default) — the same tiles `getElevation()` decodes
+ * Data Terrain Tiles by default) - the same tiles `getElevation()` decodes
  * for elevation profiles.
  */
 export const terrainSources: { [key: string]: RasterDEMSourceSpecification } = {

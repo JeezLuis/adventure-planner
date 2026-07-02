@@ -11,9 +11,6 @@ export class WaypointSelection {
 
     constructor() {
         this._selection = writable(undefined);
-        settings.treeFileView.subscribe(() => {
-            this.update();
-        });
         selection.subscribe(() => {
             this.update();
         });
@@ -36,7 +33,7 @@ export class WaypointSelection {
             this._fileUnsubscribe = undefined;
         }
         this._selection.update(() => {
-            if (get(settings.treeFileView) && get(selection).size === 1) {
+            if (get(selection).size === 1) {
                 let item = get(selection).getSelected()[0];
                 if (item instanceof ListWaypointItem) {
                     let fileState = fileStateCollection.getFileState(item.getFileId());

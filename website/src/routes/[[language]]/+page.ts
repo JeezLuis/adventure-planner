@@ -1,5 +1,5 @@
 /**
- * The site root has no landing page — visitors go straight to the app.
+ * The site root has no landing page - visitors go straight to the app.
  * With the static adapter, the redirect is prerendered as a meta-refresh
  * page for every shipped language.
  */

@@ -10,7 +10,8 @@ import { tick } from 'svelte';
 import { ANCHOR_LAYER_KEY, StyleManager } from '$lib/components/map/style';
 import { MapLayerEventManager } from '$lib/components/map/map-layer-event-manager';
 
-const { treeFileView, elevationProfile, bottomPanelSize, rightPanelSize, distanceUnits } = settings;
+const { elevationProfile, bottomPanelSize, bottomPanelVisible, leftPanelSize, distanceUnits } =
+    settings;
 
 let fitBoundsOptions: maplibregl.MapOptions['fitBoundsOptions'] = {
     maxZoom: 15,
@@ -122,10 +123,10 @@ export class MapLibreGLMap {
         });
         map.on('style.load', this.callOnLoadBinded);
 
-        this._unsubscribes.push(treeFileView.subscribe(() => this.resize()));
         this._unsubscribes.push(elevationProfile.subscribe(() => this.resize()));
         this._unsubscribes.push(bottomPanelSize.subscribe(() => this.resize()));
-        this._unsubscribes.push(rightPanelSize.subscribe(() => this.resize()));
+        this._unsubscribes.push(bottomPanelVisible.subscribe(() => this.resize()));
+        this._unsubscribes.push(leftPanelSize.subscribe(() => this.resize()));
         this._unsubscribes.push(
             distanceUnits.subscribe((units) => {
                 scaleControl.setUnit(units);

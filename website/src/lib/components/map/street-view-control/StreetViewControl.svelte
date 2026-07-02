@@ -10,7 +10,7 @@
 
     /**
      * Street view toggle. When enabled, clicking the map opens the location
-     * in Google Street View (plain URL redirect — no API key involved).
+     * in Google Street View (plain URL redirect, no API key involved).
      */
     let googleRedirect: GoogleRedirect | null = $state(null);
 

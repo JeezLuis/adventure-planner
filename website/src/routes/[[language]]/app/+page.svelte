@@ -6,6 +6,8 @@
     import Map from '$lib/components/map/Map.svelte';
     import Menu from '$lib/components/Menu.svelte';
     import Toolbar from '$lib/components/toolbar/Toolbar.svelte';
+    import LibraryActions from '$lib/components/library/LibraryActions.svelte';
+    import { ChevronDown, ChevronUp } from '@lucide/svelte';
     import StreetViewControl from '$lib/components/map/street-view-control/StreetViewControl.svelte';
     import LayerControl from '$lib/components/map/layer-control/LayerControl.svelte';
     import CoordinatesPopup from '$lib/components/map/CoordinatesPopup.svelte';
@@ -22,10 +24,10 @@
     import { fileStateCollection } from '$lib/logic/file-state';
 
     const {
-        treeFileView,
         elevationProfile,
         bottomPanelSize,
-        rightPanelSize,
+        bottomPanelVisible,
+        leftPanelSize,
         additionalDatasets,
         elevationFill,
     } = settings;
@@ -66,7 +68,7 @@
 </script>
 
 <div class="fixed mt-[100%] -z-10 text-transparent">
-    <h1>{i18n._('metadata.home_title')} — {i18n._('metadata.app_title')}</h1>
+    <h1>{i18n._('metadata.home_title')} - {i18n._('metadata.app_title')}</h1>
     <p>{i18n._('metadata.description')}</p>
     <h2>{i18n._('toolbar.routing.tooltip')}</h2>
     <p>{i18n._('toolbar.routing.help_no_file')}</p>
@@ -103,62 +105,84 @@
 </div>
 
 <div class="fixed flex flex-row w-dvw h-dvh">
+    <!-- Permanent library panel: menu bar, creation actions, file tree. -->
+    <div
+        class="h-full shrink-0 flex flex-col bg-background z-30 overflow-hidden"
+        style="width: {$leftPanelSize}px"
+    >
+        <Menu />
+        <LibraryActions />
+        <div class="grow min-h-0">
+            <FileList orientation="vertical" recursive={true} />
+        </div>
+    </div>
+    <Resizer
+        orientation="col"
+        invert={true}
+        bind:after={$leftPanelSize}
+        minAfter={270}
+        maxAfter={450}
+    />
     <div class="flex flex-col grow h-full min-w-0">
         <div class="grow relative">
-            <Menu />
-            <!-- Floating tool bar, horizontally centered right below the menu bar. -->
+            <!-- Floating tool bar hovering over the map, vertically centered at its left edge. -->
             <div
-                class="absolute top-14 left-0 right-0 z-20 flex flex-row justify-center pointer-events-none"
+                class="absolute top-0 bottom-0 left-2 z-20 flex flex-col justify-center pointer-events-none"
             >
                 <Toolbar />
             </div>
-            <Map class="h-full {$treeFileView ? '' : 'horizontal'}" />
+            <Map class="h-full" />
             <StreetViewControl />
             <LayerControl />
             <GPXLayers />
             <CoordinatesPopup />
             <Toaster richColors />
-            {#if !$treeFileView}
-                <div class="h-10 -translate-y-10 w-full pointer-events-none absolute z-30">
-                    <FileList orientation="horizontal" />
-                </div>
-            {/if}
+            <!-- Collapse/expand toggle for the track-info panel below. -->
+            <button
+                class="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 bg-background rounded-md shadow-md p-0.5 border"
+                aria-label={i18n._($bottomPanelVisible ? 'menu.collapse' : 'menu.expand')}
+                onclick={() => ($bottomPanelVisible = !$bottomPanelVisible)}
+            >
+                {#if $bottomPanelVisible}
+                    <ChevronDown size="18" />
+                {:else}
+                    <ChevronUp size="18" />
+                {/if}
+            </button>
         </div>
-        {#if $elevationProfile}
-            <Resizer
-                orientation="row"
-                bind:after={$bottomPanelSize}
-                minAfter={100}
-                maxAfter={300}
-            />
-        {/if}
-        <div
-            bind:offsetWidth={bottomPanelWidth}
-            class="flex {bottomPanelOrientation == 'vertical'
-                ? 'flex-col'
-                : 'flex-row py-2'} gap-1 px-4"
-            style={$elevationProfile ? `height: ${$bottomPanelSize}px` : ''}
-        >
-            <GPXStatistics
-                {gpxStatistics}
-                {slicedGPXStatistics}
-                orientation={bottomPanelOrientation == 'horizontal' ? 'vertical' : 'horizontal'}
-            />
+        {#if $bottomPanelVisible}
             {#if $elevationProfile}
-                <ElevationProfile
-                    {gpxStatistics}
-                    {slicedGPXStatistics}
-                    {hoveredPoint}
-                    {additionalDatasets}
-                    {elevationFill}
+                <Resizer
+                    orientation="row"
+                    bind:after={$bottomPanelSize}
+                    minAfter={100}
+                    maxAfter={300}
                 />
             {/if}
-        </div>
+            <div
+                bind:offsetWidth={bottomPanelWidth}
+                class="flex {bottomPanelOrientation == 'vertical'
+                    ? 'flex-col'
+                    : 'flex-row py-2'} gap-1 px-4"
+                style={$elevationProfile ? `height: ${$bottomPanelSize}px` : ''}
+            >
+                <GPXStatistics
+                    {gpxStatistics}
+                    {slicedGPXStatistics}
+                    orientation={bottomPanelOrientation == 'horizontal' ? 'vertical' : 'horizontal'}
+                />
+                {#if $elevationProfile}
+                    <ElevationProfile
+                        {gpxStatistics}
+                        {slicedGPXStatistics}
+                        {hoveredPoint}
+                        {additionalDatasets}
+                        {elevationFill}
+                    />
+                {/if}
+            </div>
+        {/if}
     </div>
-    {#if $treeFileView}
-        <Resizer orientation="col" bind:after={$rightPanelSize} minAfter={100} maxAfter={400} />
-        <FileList orientation="vertical" recursive={true} style="width: {$rightPanelSize}px" />
-    {/if}
 </div>
 
 <style lang="postcss">
