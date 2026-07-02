@@ -4,6 +4,7 @@
  * page for every shipped language.
  */
 import { redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
 import { languages } from '$lib/languages';
 import type { EntryGenerator, PageLoad } from './$types';
 
@@ -12,5 +13,5 @@ export const entries: EntryGenerator = () => {
 };
 
 export const load: PageLoad = ({ params }) => {
-    redirect(308, params.language ? `/${params.language}/app` : '/app');
+    redirect(308, params.language ? `${base}/${params.language}/app` : `${base}/app`);
 };
