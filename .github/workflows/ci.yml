@@ -1,0 +1,133 @@
+# Continuous integration for the adventure-planner monorepo:
+# - secrets-scan:    blocks any commit that contains a leaked secret
+# - build-and-test:  builds + tests the gpx library, then builds the website
+# - quality-advisory: lint / svelte-check / npm audit, non-blocking for now
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+jobs:
+    # Scans the full commit history with gitleaks and FAILS the build if any
+    # committed secret (API key, token, private key, ...) is detected. This is
+    # a hard gate: a leaked secret must be rotated and purged, never merged.
+    secrets-scan:
+        name: Secrets scan (gitleaks)
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout (full history)
+              uses: actions/checkout@v5
+              with:
+                  # gitleaks needs the full history to scan every commit,
+                  # not just the checked-out tree.
+                  fetch-depth: 0
+
+            - name: Run gitleaks
+              uses: gitleaks/gitleaks-action@v2
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    build-and-test:
+        name: Build and test
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
+
+            - name: Install Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: |
+                      gpx/package-lock.json
+                      website/package-lock.json
+
+            # gpx must be installed and built first: the website depends on it
+            # via "gpx": "file:../gpx". Its postinstall runs the build, but we
+            # keep the explicit build step so a compile failure is attributed
+            # to the right step in the UI.
+            - name: Install gpx dependencies
+              run: npm ci
+              working-directory: gpx
+
+            - name: Build gpx library
+              run: npm run build
+              working-directory: gpx
+
+            - name: Test gpx library
+              run: npm test
+              working-directory: gpx
+
+            - name: Install website dependencies
+              run: npm ci
+              working-directory: website
+
+            - name: Build website
+              run: npm run build
+              working-directory: website
+              env:
+                  # Public build-time configuration (see website/.env.example).
+                  # These values are baked into the client bundle and are NOT
+                  # secrets; a placeholder MapTiler key is enough to compile.
+                  PUBLIC_MAPTILER_KEY: ci-placeholder
+                  PUBLIC_BROUTER_URL: https://brouter.de/brouter
+                  PUBLIC_ELEVATION_TILE_URL: https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png
+
+    # Advisory-only quality gates. Every step uses continue-on-error, so this
+    # job never blocks a merge. Each step graduates to the blocking
+    # build-and-test job once the inherited upstream issues it flags are fixed.
+    quality-advisory:
+        name: Quality checks (advisory)
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
+
+            - name: Install Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: |
+                      gpx/package-lock.json
+                      website/package-lock.json
+
+            - name: Install gpx dependencies (builds gpx via postinstall)
+              run: npm ci
+              working-directory: gpx
+
+            - name: Install website dependencies
+              run: npm ci
+              working-directory: website
+
+            # Non-blocking: prettier --check currently fails on a handful of
+            # files inherited from upstream. It will be tightened into a
+            # required check once the inherited code is progressively cleaned,
+            # instead of reformatting the whole codebase in one noisy commit.
+            - name: Lint website (prettier + eslint)
+              run: npm run lint
+              working-directory: website
+              continue-on-error: true
+
+            # Non-blocking: svelte-check reports ~22 pre-existing upstream
+            # type errors. It becomes a blocking step once those are fixed.
+            - name: Type-check website (svelte-check)
+              run: npm run check
+              working-directory: website
+              continue-on-error: true
+
+            # Non-blocking: npm audit is informational only. Vulnerabilities in
+            # transitive dev tooling would otherwise block unrelated changes;
+            # findings are triaged and fixed deliberately instead.
+            - name: Audit gpx dependencies
+              run: npm audit
+              working-directory: gpx
+              continue-on-error: true
+
+            - name: Audit website dependencies
+              run: npm audit
+              working-directory: website
+              continue-on-error: true

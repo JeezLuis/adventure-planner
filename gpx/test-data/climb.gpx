@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Hand-authored fixture with fully predictable statistics, used by
+    tests/statistics.test.ts (and the round-trip suite).
+
+    Geometry: 10 points going due north along the meridian lon=7.0, with the
+    latitude increasing by exactly 0.009 degrees per step. Because the
+    longitude is constant, the haversine distance of each of the 9 legs
+    reduces to (earth radius) * (delta latitude in radians):
+        6371008.8 m * 0.009 * pi / 180 = 1000.7557 m
+    for a total of 9 * 1000.7557 m = 9006.80 m ~ 9.007 km.
+
+    Elevation climbs monotonically from 500 m to 590 m in equal 10 m steps,
+    i.e. perfectly linear in distance, so any sane smoothing yields a total
+    gain of exactly 590 - 500 = 90 m and a loss of 0 m.
+
+    Timestamps advance by exactly 60 s per point: total time 9 * 60 = 540 s,
+    at ~60 km/h, which is within the moving-speed thresholds, so moving time
+    equals total time.
+-->
+<gpx xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://www.topografix.com/GPX/1/1"
+    xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+    version="1.1" creator="https://gpx.studio">
+    <metadata>
+        <name>climb</name>
+    </metadata>
+    <trk>
+        <name>climb</name>
+        <type>Cycling</type>
+        <trkseg>
+            <trkpt lat="46.000" lon="7.0">
+                <ele>500.0</ele>
+                <time>2024-06-01T08:00:00Z</time>
+            </trkpt>
+            <trkpt lat="46.009" lon="7.0">
+                <ele>510.0</ele>
+                <time>2024-06-01T08:01:00Z</time>
+            </trkpt>
+            <trkpt lat="46.018" lon="7.0">
+                <ele>520.0</ele>
+                <time>2024-06-01T08:02:00Z</time>
+            </trkpt>
+            <trkpt lat="46.027" lon="7.0">
+                <ele>530.0</ele>
+                <time>2024-06-01T08:03:00Z</time>
+            </trkpt>
+            <trkpt lat="46.036" lon="7.0">
+                <ele>540.0</ele>
+                <time>2024-06-01T08:04:00Z</time>
+            </trkpt>
+            <trkpt lat="46.045" lon="7.0">
+                <ele>550.0</ele>
+                <time>2024-06-01T08:05:00Z</time>
+            </trkpt>
+            <trkpt lat="46.054" lon="7.0">
+                <ele>560.0</ele>
+                <time>2024-06-01T08:06:00Z</time>
+            </trkpt>
+            <trkpt lat="46.063" lon="7.0">
+                <ele>570.0</ele>
+                <time>2024-06-01T08:07:00Z</time>
+            </trkpt>
+            <trkpt lat="46.072" lon="7.0">
+                <ele>580.0</ele>
+                <time>2024-06-01T08:08:00Z</time>
+            </trkpt>
+            <trkpt lat="46.081" lon="7.0">
+                <ele>590.0</ele>
+                <time>2024-06-01T08:09:00Z</time>
+            </trkpt>
+        </trkseg>
+    </trk>
+</gpx>
