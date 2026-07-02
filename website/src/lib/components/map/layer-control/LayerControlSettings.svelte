@@ -12,7 +12,6 @@
         defaultBasemap,
         overlays,
         overlayTree,
-        overpassTree,
         terrainSources,
     } from '$lib/assets/layers';
     import { getLayers, isSelected, toggle } from '$lib/components/map/layer-control/utils';
@@ -26,10 +25,8 @@
     const {
         selectedBasemapTree,
         selectedOverlayTree,
-        selectedOverpassTree,
         currentBasemap,
         currentOverlays,
-        currentOverpassQueries,
         customLayers,
         opacities,
         terrainSource,
@@ -87,26 +84,6 @@
         }
     });
 
-    $effect(() => {
-        if (open && $selectedOverpassTree) {
-            untrack(() => {
-                if ($currentOverpassQueries) {
-                    let overlayLayers = getLayers($currentOverpassQueries);
-                    let toRemove = Object.entries(overlayLayers).filter(
-                        ([id, checked]) => checked && !isSelected($selectedOverpassTree, id)
-                    );
-                    if (toRemove.length > 0) {
-                        currentOverpassQueries.update((tree) => {
-                            toRemove.forEach(([id]) => {
-                                toggle(tree, id);
-                            });
-                            return tree;
-                        });
-                    }
-                }
-            });
-        }
-    });
 </script>
 
 <Sheet.Root bind:open>
@@ -137,15 +114,6 @@
                                     name="overlaySettings"
                                     multiple={true}
                                     bind:checked={$selectedOverlayTree}
-                                />
-                            </div>
-                            <Separator />
-                            <div class="py-2 pl-3 pr-2">
-                                <LayerTree
-                                    layerTree={overpassTree}
-                                    name="overpassSettings"
-                                    multiple={true}
-                                    bind:checked={$selectedOverpassTree}
                                 />
                             </div>
                         </Accordion.Content>

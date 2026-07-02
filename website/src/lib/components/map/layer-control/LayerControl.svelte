@@ -1,33 +1,20 @@
 <script lang="ts">
     import CustomControl from '$lib/components/map/custom-control/CustomControl.svelte';
     import LayerTree from './LayerTree.svelte';
-    import { OverpassLayer } from './overpass-layer';
     import { Separator } from '$lib/components/ui/separator';
     import { ScrollArea } from '$lib/components/ui/scroll-area/index.js';
     import { Layers } from '@lucide/svelte';
     import { settings } from '$lib/logic/settings';
-    import { map } from '$lib/components/map/map';
 
     let container: HTMLDivElement;
-    let overpassLayer: OverpassLayer;
 
     const {
         currentBasemap,
         previousBasemap,
         currentOverlays,
-        currentOverpassQueries,
         selectedBasemapTree,
         selectedOverlayTree,
-        selectedOverpassTree,
     } = settings;
-
-    map.onLoad((_map: maplibregl.Map) => {
-        if (overpassLayer) {
-            overpassLayer.remove();
-        }
-        overpassLayer = new OverpassLayer(_map, map.layerEventManager!);
-        overpassLayer.add();
-    });
 
     let open = $state(false);
     function openLayerControl() {
@@ -89,17 +76,6 @@
                                 name="overlays"
                                 multiple={true}
                                 bind:checked={$currentOverlays}
-                            />
-                        {/if}
-                    </div>
-                    <Separator class="w-full" />
-                    <div class="p-2 ml-1">
-                        {#if $currentOverpassQueries}
-                            <LayerTree
-                                layerTree={$selectedOverpassTree}
-                                name="overpass"
-                                multiple={true}
-                                bind:checked={$currentOverpassQueries}
                             />
                         {/if}
                     </div>

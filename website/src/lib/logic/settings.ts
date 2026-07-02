@@ -7,10 +7,7 @@ import {
     defaultOpacities,
     defaultOverlays,
     defaultOverlayTree,
-    defaultOverpassQueries,
-    defaultOverpassTree,
     defaultTerrainSource,
-    overpassTree,
     type CustomLayer,
     type LayerTreeType,
 } from '$lib/assets/layers';
@@ -210,7 +207,7 @@ type RoutingProfile =
     | 'motorcycle'
     | 'water'
     | 'railway';
-type TerrainSource = 'mapterhorn';
+type TerrainSource = 'terrarium';
 type StreetViewSource = 'mapillary' | 'google';
 
 export const settings = {
@@ -260,7 +257,6 @@ export const settings = {
             'bike'
         )
     ),
-    privateRoads: new Setting('privateRoads', false),
     currentBasemap: new Setting(
         'currentBasemap',
         defaultBasemap,
@@ -291,16 +287,6 @@ export const settings = {
         defaultOverlayTree,
         getLayerTreeValidator(defaultOverlayTree)
     ),
-    currentOverpassQueries: new SettingInitOnFirstRead(
-        'currentOverpassQueries',
-        defaultOverpassQueries,
-        getLayerTreeValidator(overpassTree)
-    ),
-    selectedOverpassTree: new Setting(
-        'selectedOverpassTree',
-        defaultOverpassTree,
-        getLayerTreeValidator(overpassTree)
-    ),
     opacities: new Setting('opacities', defaultOpacities),
     customLayers: new Setting<Record<string, CustomLayer>>('customLayers', {}),
     customBasemapOrder: new Setting<string[]>('customBasemapOrder', []),
@@ -308,7 +294,7 @@ export const settings = {
     terrainSource: new Setting<TerrainSource>(
         'terrainSource',
         defaultTerrainSource,
-        getValueValidator(['mapterhorn'], defaultTerrainSource)
+        getValueValidator(['terrarium'], defaultTerrainSource)
     ),
     directionMarkers: new Setting('directionMarkers', false),
     distanceMarkers: new Setting('distanceMarkers', false),

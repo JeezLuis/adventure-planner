@@ -13,7 +13,6 @@
         Waves,
         TrainFront,
         Route,
-        TriangleAlert,
         ArrowRightLeft,
         House,
         RouteOff,
@@ -56,7 +55,7 @@
         class?: string;
     } = $props();
 
-    const { privateRoads, routing, routingProfile } = settings;
+    const { routing, routingProfile } = settings;
 
     let fileStateCollectionObserver: GPXFileStateCollectionObserver;
 
@@ -176,13 +175,6 @@
                                 {/each}
                             </Select.Content>
                         </Select.Root>
-                    </Label>
-                    <Label class="justify-between">
-                        <span class="flex flex-row gap-1">
-                            <TriangleAlert size="16" />
-                            {i18n._('toolbar.routing.allow_private')}
-                        </span>
-                        <Switch bind:checked={$privateRoads} />
                     </Label>
                 </div>
             {/if}

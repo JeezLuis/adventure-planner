@@ -3,6 +3,7 @@ import { get, type Writable } from 'svelte/store';
 import {
     basemaps,
     defaultBasemap,
+    fallbackBasemapStyle,
     maptilerKeyPlaceHolder,
     overlays,
     terrainSources,
@@ -28,7 +29,6 @@ export const ANCHOR_LAYER_KEY = {
     distanceMarkers: 'distance-markers-end',
     startEndMarkers: 'start-end-markers-end',
     interactions: 'interactions-end',
-    overpass: 'overpass-end',
     waypoints: 'waypoints-end',
     routingControls: 'routing-controls-end',
 };
@@ -91,7 +91,8 @@ export class StyleManager {
 
         const basemapInfo = basemaps[basemap] ?? custom[basemap]?.value ?? basemaps[defaultBasemap];
 
-        let basemapStyle = basemaps.openStreetMap as maplibregl.StyleSpecification;
+        // Raster OSM fallback so the map never renders empty if the style fetch fails.
+        let basemapStyle = fallbackBasemapStyle;
         try {
             basemapStyle = await this.get(basemapInfo);
             for (const source in basemapStyle.sources) {
@@ -206,7 +207,9 @@ export class StyleManager {
         styleInfo: maplibregl.StyleSpecification | string
     ): Promise<maplibregl.StyleSpecification> {
         if (typeof styleInfo === 'string') {
-            let styleUrl = styleInfo as string;
+            // Style URLs from the catalog carry a key placeholder so the real
+            // MapTiler key only ever exists in the environment, not in code.
+            let styleUrl = styleInfo.replace(maptilerKeyPlaceHolder, this._maptilerKey);
             const response = await fetch(styleUrl, { cache: 'force-cache' });
             if (!response.ok) {
                 throw new Error(`HTTP error fetching style "${styleInfo}": ${response.status}`);

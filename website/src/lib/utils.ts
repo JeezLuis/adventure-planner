@@ -5,6 +5,7 @@ import { languages } from '$lib/languages';
 import { TrackPoint, Waypoint, type Coordinates, crossarcDistance, distance, GPXFile } from 'gpx';
 import maplibregl from 'maplibre-gl';
 import { pointToTile, pointToTileFraction } from '@mapbox/tilebelt';
+import { ELEVATION_TILE_URL } from '$lib/config';
 import type { GPXStatisticsTree } from '$lib/logic/statistics-tree';
 import { ListTrackSegmentItem } from '$lib/components/file-list/file-list';
 
@@ -98,10 +99,16 @@ export function getClosestTrackSegments(
     return closest.indices;
 }
 
+/**
+ * Looks up the elevation (in meters) of each point by fetching
+ * terrarium-encoded elevation tiles (see {@link ELEVATION_TILE_URL}) and
+ * decoding the height from the pixel colors, with bilinear interpolation
+ * between the four surrounding pixels. Runs entirely client-side; failed tile
+ * loads yield an elevation of 0 for the affected points.
+ */
 export function getElevation(
     points: (TrackPoint | Waypoint | Coordinates)[],
-    ELEVATION_ZOOM: number = 12,
-    tileSize = 512
+    ELEVATION_ZOOM: number = 12
 ): Promise<number[]> {
     let coordinates = points.map((point) =>
         point instanceof TrackPoint || point instanceof Waypoint ? point.getCoordinates() : point
@@ -121,9 +128,14 @@ export function getElevation(
     };
 
     let promises = uniqueTiles.map((tile) =>
-        fetch(`https://tiles.gpx.studio/mapterhorn/${ELEVATION_ZOOM}/${tile[0]}/${tile[1]}.webp`, {
-            cache: 'force-cache',
-        })
+        fetch(
+            ELEVATION_TILE_URL.replace('{z}', ELEVATION_ZOOM.toString())
+                .replace('{x}', tile[0].toString())
+                .replace('{y}', tile[1].toString()),
+            {
+                cache: 'force-cache',
+            }
+        )
             .then((response) => response.blob())
             .then(
                 (blob) =>
@@ -161,6 +173,9 @@ export function getElevation(
                 return 0;
             }
 
+            // The tile edge length is read from the decoded image so any tile
+            // provider (256px or 512px tiles) works without configuration.
+            const tileSize = imageData.width;
             let tf = pointToTileFraction(coord.lon, coord.lat, ELEVATION_ZOOM);
             let x = tileSize * (tf[0] - tile[0]);
             let y = tileSize * (tf[1] - tile[1]);
