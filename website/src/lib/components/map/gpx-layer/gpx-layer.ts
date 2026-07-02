@@ -29,8 +29,10 @@ import { splitAs } from '$lib/components/toolbar/tools/scissors/scissors';
 import { mapCursor, MapCursorState } from '$lib/logic/map-cursor';
 import { ANCHOR_LAYER_KEY } from '$lib/components/map/style';
 import { gpxColors } from '$lib/components/map/gpx-layer/gpx-layers';
+import { visibleFileIds } from '$lib/library/library';
 
-const colors = [
+/** Palette used to auto-assign track colors, also offered as quick-pick swatches in the style dialog. */
+export const trackColorPalette = [
     '#ff0000',
     '#0000ff',
     '#46e646',
@@ -43,6 +45,7 @@ const colors = [
     '#50f0be',
     '#8c645a',
 ];
+const colors = trackColorPalette;
 
 const colorCount: { [key: string]: number } = {};
 for (let color of colors) {
@@ -170,6 +173,7 @@ export class GPXLayer {
             })
         );
         this.unsubscribe.push(directionMarkers.subscribe(this.updateBinded));
+        this.unsubscribe.push(visibleFileIds.subscribe(this.updateBinded));
     }
 
     update() {
@@ -177,6 +181,31 @@ export class GPXLayer {
         const layerEventManager = map.layerEventManager;
         let file = get(this.file)?.file;
         if (!_map || !layerEventManager || !file) {
+            return;
+        }
+
+        // The map only renders the tracks of the current library selection,
+        // mirroring the track list of the library panel.
+        const visibleOnMap = get(visibleFileIds).has(this.fileId);
+        try {
+            for (const layerId of [
+                this.fileId,
+                this.fileId + '-direction',
+                this.fileId + '-waypoints',
+            ]) {
+                if (_map.getLayer(layerId)) {
+                    _map.setLayoutProperty(
+                        layerId,
+                        'visibility',
+                        visibleOnMap ? 'visible' : 'none'
+                    );
+                }
+            }
+        } catch (e) {
+            // The style is not ready yet; the next update will retry.
+            return;
+        }
+        if (!visibleOnMap) {
             return;
         }
 

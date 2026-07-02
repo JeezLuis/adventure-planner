@@ -18,7 +18,8 @@
     /**
      * Floating tool bar hovering over the left edge of the map, vertically
      * centered: a vertical pill of editing tools with the active tool's panel
-     * opening to its right.
+     * opening to its right. Only rendered while an adventure is selected (see
+     * the app page), since editing always happens inside one.
      */
     let props: {
         class?: string;

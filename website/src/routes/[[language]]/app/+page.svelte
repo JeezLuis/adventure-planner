@@ -2,12 +2,13 @@
     import GPXLayers from '$lib/components/map/gpx-layer/GPXLayers.svelte';
     import ElevationProfile from '$lib/components/elevation-profile/ElevationProfile.svelte';
     import LibraryTree from '$lib/components/library/LibraryTree.svelte';
+    import LibraryTracks from '$lib/components/library/LibraryTracks.svelte';
     import GPXStatistics from '$lib/components/GPXStatistics.svelte';
     import Map from '$lib/components/map/Map.svelte';
     import Menu from '$lib/components/Menu.svelte';
     import Toolbar from '$lib/components/toolbar/Toolbar.svelte';
     import LibraryActions from '$lib/components/library/LibraryActions.svelte';
-    import { ChevronDown, ChevronUp } from '@lucide/svelte';
+    import { ChevronDown, ChevronUp, Heart } from '@lucide/svelte';
     import StreetViewControl from '$lib/components/map/street-view-control/StreetViewControl.svelte';
     import LayerControl from '$lib/components/map/layer-control/LayerControl.svelte';
     import CoordinatesPopup from '$lib/components/map/CoordinatesPopup.svelte';
@@ -22,12 +23,15 @@
     import { getURLForGoogleDriveFile } from '$lib/components/embedding/embedding';
     import { db } from '$lib/db';
     import { fileStateCollection } from '$lib/logic/file-state';
+    import { selectedAdventureId } from '$lib/library/library';
+    import { currentTool } from '$lib/components/toolbar/tools';
 
     const {
         elevationProfile,
         bottomPanelSize,
         bottomPanelVisible,
         leftPanelSize,
+        libraryTracksPanelSize,
         additionalDatasets,
         elevationFill,
     } = settings;
@@ -36,6 +40,13 @@
     let bottomPanelOrientation = $derived(
         bottomPanelWidth && bottomPanelWidth >= 540 && $elevationProfile ? 'horizontal' : 'vertical'
     );
+
+    // The editing tools vanish with the toolbar, so no tool may stay active.
+    $effect(() => {
+        if ($selectedAdventureId === null && $currentTool !== null) {
+            $currentTool = null;
+        }
+    });
 
     onMount(async () => {
         settings.connectToDatabase(db);
@@ -105,7 +116,9 @@
 </div>
 
 <div class="fixed flex flex-row w-dvw h-dvh">
-    <!-- Permanent library panel: menu bar, creation actions, file tree. -->
+    <!-- Permanent library panel: menu bar, creation actions, and two stacked
+         panes with a draggable divider: the organisation tree (expeditions
+         and adventures) on top, the tracks of the current selection below. -->
     <div
         class="h-full shrink-0 flex flex-col bg-background z-30 overflow-hidden"
         style="width: {$leftPanelSize}px"
@@ -114,6 +127,30 @@
         <LibraryActions />
         <div class="grow min-h-0">
             <LibraryTree />
+        </div>
+        <Resizer
+            orientation="row"
+            bind:after={$libraryTracksPanelSize}
+            minAfter={120}
+            maxAfter={600}
+        />
+        <div class="shrink-0 min-h-0" style="height: {$libraryTracksPanelSize}px">
+            <LibraryTracks />
+        </div>
+        <!-- Credit banner. -->
+        <div
+            class="shrink-0 flex flex-row items-center justify-center gap-1 border-t px-2 py-1 text-[11px] text-muted-foreground"
+        >
+            {i18n._('library.made_with')}
+            <Heart size="11" class="shrink-0 fill-red-500 text-red-500" />
+            <a
+                href="https://www.instagram.com/trinxats.adv/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:underline"
+            >
+                {i18n._('library.by_club')}
+            </a>
         </div>
     </div>
     <Resizer
@@ -125,12 +162,16 @@
     />
     <div class="flex flex-col grow h-full min-w-0">
         <div class="grow relative">
-            <!-- Floating tool bar hovering over the map, vertically centered at its left edge. -->
-            <div
-                class="absolute top-0 bottom-0 left-2 z-20 flex flex-col justify-center pointer-events-none"
-            >
-                <Toolbar />
-            </div>
+            {#if $selectedAdventureId !== null}
+                <!-- Floating tool bar hovering over the map, vertically centered at its
+                     left edge. Editing tools only make sense inside an adventure: with
+                     anything else selected the whole bar stays hidden. -->
+                <div
+                    class="absolute top-0 bottom-0 left-2 z-20 flex flex-col justify-center pointer-events-none"
+                >
+                    <Toolbar />
+                </div>
+            {/if}
             <Map class="h-full" />
             <StreetViewControl />
             <LayerControl />

@@ -8,21 +8,25 @@
  * - A track (GPX file) is placed in at most one adventure; tracks without a
  *   placement belong to the implicit "Unsorted" section of the panel.
  * - An adventure belongs to at most one expedition (or lives at the root).
- * - An expedition may nest inside another expedition (or live at the root).
+ * - An expedition may nest inside another expedition (or live at the root),
+ *   but never inside itself or one of its descendants.
  * - Placements never point at deleted files: a pruner watches the file table
  *   and removes orphaned placements (file ids are recycled by the editor, so
  *   stale placements would otherwise mis-file future tracks).
  */
 import { liveQuery } from 'dexie';
-import { readable, writable, get, type Readable } from 'svelte/store';
+import { derived, readable, writable, get, type Readable } from 'svelte/store';
 import { browser } from '$app/environment';
 import { db } from '$lib/db';
+import { selection as editorSelection } from '$lib/logic/selection';
 
 /** A nestable group of adventures. `parentId` is another expedition id or null for root. */
 export type Expedition = {
     id: string;
     name: string;
     parentId: string | null;
+    /** Manual position among siblings; missing on rows from before ordering existed. */
+    order?: number;
 };
 
 /** A set of tracks. `expeditionId` is the containing expedition or null for root. */
@@ -30,13 +34,55 @@ export type Adventure = {
     id: string;
     name: string;
     expeditionId: string | null;
+    /** Manual position among siblings; missing on rows from before ordering existed. */
+    order?: number;
 };
+
+/** Sorts expeditions or adventures by their manual position. */
+export function sortByOrder<T extends { order?: number }>(items: T[]): T[] {
+    return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+/** The order value that places an item at the end of a sibling list. */
+function orderAtEnd(siblings: { order?: number }[]): number {
+    return siblings.reduce((max, sibling) => Math.max(max, sibling.order ?? 0), 0) + 1;
+}
+
+/**
+ * The order value that places an item just before or after a sibling,
+ * halfway between it and its neighbor so nothing else needs renumbering.
+ */
+export function orderRelativeTo<T extends { id: string; order?: number }>(
+    siblings: T[],
+    targetId: string,
+    before: boolean
+): number {
+    const sorted = sortByOrder(siblings);
+    const index = sorted.findIndex((sibling) => sibling.id === targetId);
+    if (index === -1) {
+        return orderAtEnd(sorted);
+    }
+    const target = sorted[index].order ?? 0;
+    const neighbor = before ? sorted[index - 1] : sorted[index + 1];
+    if (neighbor === undefined) {
+        return target + (before ? -1 : 1);
+    }
+    return (target + (neighbor.order ?? 0)) / 2;
+}
 
 /** Assignment of one track (GPX file id) to one adventure. */
 export type TrackPlacement = {
     fileId: string;
     adventureId: string;
 };
+
+/**
+ * One selectable row of the library tree: an adventure or an expedition
+ * (standing for everything nested below it).
+ */
+export type LibrarySelectionItem =
+    | { kind: 'expedition'; id: string }
+    | { kind: 'adventure'; id: string };
 
 /** Wraps a Dexie liveQuery as a Svelte store (empty initial value during SSR). */
 function liveStore<T>(query: () => Promise<T> | T, initial: T): Readable<T> {
@@ -60,22 +106,138 @@ export const trackPlacements = liveStore<Map<string, string>>(
 );
 
 /**
- * The adventure currently highlighted in the library panel. New and imported
- * tracks are placed here automatically; null sends them to "Unsorted".
+ * The library items currently highlighted in the panel. Several can be
+ * selected at once (ctrl/cmd+click); the track pane and the map show the
+ * union of their tracks. Empty means nothing is shown.
  */
-export const selectedAdventureId = writable<string | null>(null);
+export const librarySelection = writable<LibrarySelectionItem[]>([]);
 
-/** Creates an expedition (optionally nested) and returns its id. */
+/**
+ * The adventure new and imported tracks are placed into automatically: the
+ * selected one, defined only when the selection is exactly one adventure.
+ */
+export const selectedAdventureId: Readable<string | null> = derived(librarySelection, (items) =>
+    items.length === 1 && items[0].kind === 'adventure' ? items[0].id : null
+);
+
+/** The ids of an expedition and every expedition nested below it. */
+function expeditionSubtreeIds(rootId: string, allExpeditions: Expedition[]): Set<string> {
+    const childrenByParent = new Map<string | null, string[]>();
+    allExpeditions.forEach((expedition) => {
+        const siblings = childrenByParent.get(expedition.parentId) ?? [];
+        siblings.push(expedition.id);
+        childrenByParent.set(expedition.parentId, siblings);
+    });
+    const subtree = new Set<string>([rootId]);
+    const queue = [rootId];
+    while (queue.length > 0) {
+        const current = queue.pop() as string;
+        (childrenByParent.get(current) ?? []).forEach((childId) => {
+            if (!subtree.has(childId)) {
+                subtree.add(childId);
+                queue.push(childId);
+            }
+        });
+    }
+    return subtree;
+}
+
+/** The ids of every adventure contained in a set of selected library items. */
+export function adventureIdsOfSelection(
+    items: LibrarySelectionItem[],
+    allExpeditions: Expedition[],
+    allAdventures: Adventure[]
+): Set<string> {
+    const adventureIds = new Set<string>();
+    for (const item of items) {
+        if (item.kind === 'adventure') {
+            adventureIds.add(item.id);
+        } else {
+            const subtree = expeditionSubtreeIds(item.id, allExpeditions);
+            allAdventures.forEach((a) => {
+                if (a.expeditionId !== null && subtree.has(a.expeditionId)) {
+                    adventureIds.add(a.id);
+                }
+            });
+        }
+    }
+    return adventureIds;
+}
+
+/**
+ * The file ids the current library selection contains (the union over all
+ * selected items; empty when nothing is selected). This single store drives
+ * both the track list of the bottom pane and the tracks rendered on the map,
+ * which is what keeps the two in sync.
+ */
+export const visibleFileIds: Readable<Set<string>> = derived(
+    [librarySelection, expeditions, adventures, trackPlacements],
+    ([items, $expeditions, $adventures, $placements]) => {
+        const adventureIds = adventureIdsOfSelection(items, $expeditions, $adventures);
+        const fileIds = new Set<string>();
+        $placements.forEach((adventureId, fileId) => {
+            if (adventureIds.has(adventureId)) {
+                fileIds.add(fileId);
+            }
+        });
+        return fileIds;
+    }
+);
+
+/**
+ * Selects a library item, or toggles its membership when `multi` is set
+ * (ctrl/cmd+click), and mirrors the resulting tracks into the editor
+ * selection so statistics and the elevation profile follow the library.
+ */
+export function selectLibraryItem(item: LibrarySelectionItem, multi: boolean): void {
+    librarySelection.update((items) => {
+        const exists = items.some(
+            (candidate) => candidate.kind === item.kind && candidate.id === item.id
+        );
+        if (!multi) {
+            return [item];
+        }
+        return exists
+            ? items.filter(
+                  (candidate) => !(candidate.kind === item.kind && candidate.id === item.id)
+              )
+            : [...items, item];
+    });
+    const adventureIds = adventureIdsOfSelection(
+        get(librarySelection),
+        get(expeditions),
+        get(adventures)
+    );
+    const fileIds: string[] = [];
+    get(trackPlacements).forEach((adventureId, fileId) => {
+        if (adventureIds.has(adventureId)) {
+            fileIds.push(fileId);
+        }
+    });
+    if (fileIds.length > 0) {
+        editorSelection.selectFile(fileIds[0]);
+        fileIds.slice(1).forEach((fileId) => editorSelection.addSelectFile(fileId));
+    } else {
+        editorSelection.update(($selection) => {
+            $selection.clear();
+            return $selection;
+        });
+    }
+}
+
+/** Creates an expedition (optionally nested) at the end of its siblings and returns its id. */
 export async function createExpedition(parentId: string | null, name: string): Promise<string> {
     const id = crypto.randomUUID();
-    await db.expeditions.put({ id, name, parentId });
+    const order = orderAtEnd(get(expeditions).filter((e) => e.parentId === parentId));
+    await db.expeditions.put({ id, name, parentId, order });
     return id;
 }
 
-/** Creates an adventure (optionally inside an expedition) and returns its id. */
+/** Creates an adventure (optionally inside an expedition) at the end of its siblings and returns its id. */
 export async function createAdventure(expeditionId: string | null, name: string): Promise<string> {
     const id = crypto.randomUUID();
-    await db.adventures.put({ id, name, expeditionId });
+    const order = orderAtEnd(get(adventures).filter((a) => a.expeditionId === expeditionId));
+    await db.adventures.put({ id, name, expeditionId, order });
     return id;
 }
 
@@ -88,32 +250,102 @@ export async function renameAdventure(id: string, name: string): Promise<void> {
 }
 
 /**
- * Deletes an expedition. Its contents are not deleted: nested expeditions and
- * adventures are re-parented to the deleted expedition's parent.
+ * Moves an adventure into an expedition (or to the root when null), at the
+ * given position among its new siblings (at the end when omitted).
  */
-export async function deleteExpedition(id: string): Promise<void> {
-    await db.transaction('rw', db.expeditions, db.adventures, async () => {
-        const expedition = await db.expeditions.get(id);
-        const newParent = expedition?.parentId ?? null;
-        await db.expeditions.where('id').equals(id).delete();
-        await Promise.all([
-            db.expeditions.filter((e) => e.parentId === id).modify({ parentId: newParent }),
-            db.adventures.filter((a) => a.expeditionId === id).modify({ expeditionId: newParent }),
-        ]);
-    });
+export async function moveAdventure(
+    id: string,
+    expeditionId: string | null,
+    order?: number
+): Promise<void> {
+    const newOrder =
+        order ??
+        orderAtEnd(get(adventures).filter((a) => a.expeditionId === expeditionId && a.id !== id));
+    await db.adventures.update(id, { expeditionId, order: newOrder });
 }
 
 /**
- * Deletes an adventure. Its tracks are not deleted: their placements are
- * removed, which returns them to "Unsorted".
+ * Moves an expedition into another expedition (or to the root when null), at
+ * the given position among its new siblings (at the end when omitted).
+ * Rejected silently when the move would create a cycle, i.e. when the target
+ * is the expedition itself or one of its descendants.
+ */
+export async function moveExpedition(
+    id: string,
+    parentId: string | null,
+    order?: number
+): Promise<void> {
+    if (parentId !== null && expeditionSubtreeIds(id, get(expeditions)).has(parentId)) {
+        return;
+    }
+    const newOrder =
+        order ??
+        orderAtEnd(get(expeditions).filter((e) => e.parentId === parentId && e.id !== id));
+    await db.expeditions.update(id, { parentId, order: newOrder });
+}
+
+/**
+ * Deletes an expedition together with every nested expedition and adventure,
+ * and all their track placements. The track FILES are not touched here: the
+ * caller deletes them through the file action manager so the deletion goes
+ * through the undo history (see `deleteLibraryItem` in file-actions).
+ */
+export async function deleteExpeditionCascade(id: string): Promise<void> {
+    const deletedExpeditions = new Set<string>();
+    const deletedAdventures = new Set<string>();
+    await db.transaction('rw', db.expeditions, db.adventures, db.trackPlacements, async () => {
+        const subtree = expeditionSubtreeIds(id, await db.expeditions.toArray());
+        (await db.adventures.toArray()).forEach((adventure) => {
+            if (adventure.expeditionId !== null && subtree.has(adventure.expeditionId)) {
+                deletedAdventures.add(adventure.id);
+            }
+        });
+        subtree.forEach((expeditionId) => deletedExpeditions.add(expeditionId));
+        await db.trackPlacements.filter((p) => deletedAdventures.has(p.adventureId)).delete();
+        await db.adventures.filter((a) => deletedAdventures.has(a.id)).delete();
+        await db.expeditions.filter((e) => deletedExpeditions.has(e.id)).delete();
+    });
+    librarySelection.update((items) =>
+        items.filter((item) =>
+            item.kind === 'expedition'
+                ? !deletedExpeditions.has(item.id)
+                : !deletedAdventures.has(item.id)
+        )
+    );
+}
+
+/**
+ * Deletes an adventure and its track placements. The track FILES are not
+ * touched here: the caller deletes them through the file action manager so
+ * the deletion goes through the undo history (see `deleteLibraryItem` in
+ * file-actions).
  */
 export async function deleteAdventure(id: string): Promise<void> {
     await db.transaction('rw', db.adventures, db.trackPlacements, async () => {
         await db.adventures.where('id').equals(id).delete();
         await db.trackPlacements.filter((p) => p.adventureId === id).delete();
     });
-    selectedAdventureId.update((selected) => (selected === id ? null : selected));
+    librarySelection.update((items) =>
+        items.filter((item) => !(item.kind === 'adventure' && item.id === id))
+    );
 }
+
+/**
+ * A deletion of an adventure or expedition awaiting user confirmation (see
+ * DeleteLibraryItemDialog): deleting a container deletes every track inside.
+ */
+export const pendingDeletion = writable<LibrarySelectionItem | null>(null);
+
+/**
+ * A creation of an expedition or adventure awaiting its name (see
+ * CreateLibraryItemDialog). `parentId` is the containing expedition (null for
+ * a root expedition; adventures always have one). Name is the only field for
+ * now; more metadata joins it in a later phase.
+ */
+export const pendingCreation = writable<{
+    kind: 'expedition' | 'adventure';
+    parentId: string | null;
+} | null>(null);
 
 /** Places tracks in an adventure (or back in "Unsorted" when adventureId is null). */
 export async function placeTracks(fileIds: string[], adventureId: string | null): Promise<void> {
@@ -124,27 +356,63 @@ export async function placeTracks(fileIds: string[], adventureId: string | null)
     }
 }
 
+/**
+ * Placements declared for files that are about to be created, keyed by file
+ * id. Actions that create files with a known destination (duplicate keeps the
+ * copy in the adventure of its source) queue the placement BEFORE writing the
+ * file, and the 'creating' hook below honors it instead of falling back to
+ * the currently selected adventure. A null destination means "explicitly
+ * Unsorted".
+ */
+const queuedPlacements = new Map<string, string | null>();
+
+export function queuePlacement(fileId: string, adventureId: string | null): void {
+    queuedPlacements.set(fileId, adventureId);
+}
+
 if (browser) {
-    // Auto-place newly created files (new track, import, duplicate, paste)
-    // into the currently selected adventure. The Dexie 'creating' hook fires
-    // for every new file key; the placement is written after the file
-    // transaction completes to avoid interfering with it.
+    // Place newly created files (new track, import, duplicate, paste): a
+    // queued placement wins; otherwise the currently selected adventure gets
+    // the file. The Dexie 'creating' hook fires for every new file key; the
+    // placement is written after the file transaction completes to avoid
+    // interfering with it.
     db.files.hook('creating', (primaryKey) => {
-        const adventureId = get(selectedAdventureId);
-        if (typeof primaryKey === 'string' && adventureId !== null) {
-            setTimeout(() => {
+        if (typeof primaryKey !== 'string') {
+            return;
+        }
+        const queued = queuedPlacements.get(primaryKey);
+        const hasQueued = queuedPlacements.delete(primaryKey);
+        const selected = get(selectedAdventureId);
+        if (!hasQueued && selected === null) {
+            return;
+        }
+        setTimeout(() => {
+            if (hasQueued) {
+                // Overwrite (or clear) unconditionally: file ids are recycled,
+                // so the id may still carry the placement of a deleted file.
+                const write =
+                    queued != null
+                        ? db.trackPlacements.put({ fileId: primaryKey, adventureId: queued })
+                        : db.trackPlacements.delete(primaryKey);
+                Promise.resolve(write).catch(() => {
+                    // A failed placement only means the track lands in Unsorted.
+                });
+            } else {
                 db.trackPlacements
                     .get(primaryKey)
                     .then((existing) => {
-                        if (!existing) {
-                            return db.trackPlacements.put({ fileId: primaryKey, adventureId });
+                        if (!existing && selected !== null) {
+                            return db.trackPlacements.put({
+                                fileId: primaryKey,
+                                adventureId: selected,
+                            });
                         }
                     })
                     .catch(() => {
                         // A failed auto-placement only means the track lands in Unsorted.
                     });
-            });
-        }
+            }
+        });
     });
 
     // Prune placements whose file no longer exists. Runs on every change to

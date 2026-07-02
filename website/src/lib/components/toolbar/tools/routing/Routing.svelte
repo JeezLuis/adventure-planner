@@ -40,6 +40,8 @@
     import { fileActions, getFileIds, newGPXFile } from '$lib/logic/file-actions';
     import { mapCursor, MapCursorState } from '$lib/logic/map-cursor';
     import { RoutingControls, routingControls } from './routing-controls';
+    import { selectedAdventureId } from '$lib/library/library';
+    import { toast } from 'svelte-sonner';
 
     let {
         minimized = $bindable(false),
@@ -65,6 +67,11 @@
 
     function createFileWithPoint(e: any) {
         if ($selection.size === 0) {
+            // A new track may only be born inside an adventure.
+            if ($selectedAdventureId === null) {
+                toast.info(i18n._('library.new_track_disabled_tooltip'));
+                return;
+            }
             let file = newGPXFile();
             file.replaceTrackPoints(0, 0, 0, 0, [
                 new TrackPoint({

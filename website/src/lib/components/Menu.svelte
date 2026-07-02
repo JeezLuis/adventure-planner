@@ -1,6 +1,8 @@
 <script lang="ts">
     import * as Menubar from '$lib/components/ui/menubar/index.js';
     import { Button } from '$lib/components/ui/button';
+    import ButtonWithTooltip from '$lib/components/ButtonWithTooltip.svelte';
+    import { toast } from 'svelte-sonner';
     import Logo from '$lib/components/Logo.svelte';
     import Shortcut from '$lib/components/Shortcut.svelte';
     import {
@@ -20,7 +22,6 @@
         Thermometer,
         Sun,
         Moon,
-        Layers,
         ListTree,
         Languages,
         Settings,
@@ -34,10 +35,10 @@
         Scissors,
         ClipboardPaste,
         PaintBucket,
-        FolderOpen,
         FileStack,
         FileX,
         ChartArea,
+        CloudUpload,
         Maximize,
         Maximize2,
         Minimize2,
@@ -56,13 +57,7 @@
     import { languages } from '$lib/languages';
     import { getURLForLanguage } from '$lib/utils';
     import { settings } from '$lib/logic/settings';
-    import {
-        createFile,
-        fileActions,
-        loadFiles,
-        pasteSelection,
-        triggerFileInput,
-    } from '$lib/logic/file-actions';
+    import { createFile, fileActions, pasteSelection } from '$lib/logic/file-actions';
     import { fileStateCollection } from '$lib/logic/file-state';
     import { fileActionManager } from '$lib/logic/file-action-manager';
     import { copied, selection } from '$lib/logic/selection';
@@ -137,12 +132,6 @@
                         <Plus size="16" />
                         {i18n._('menu.new')}
                         <Shortcut key="+" ctrl={true} />
-                    </Menubar.Item>
-                    <Menubar.Separator />
-                    <Menubar.Item onclick={triggerFileInput}>
-                        <FolderOpen size="16" />
-                        {i18n._('menu.open')}
-                        <Shortcut key="O" ctrl={true} />
                     </Menubar.Item>
                     <Menubar.Separator />
                     <Menubar.Item
@@ -483,14 +472,22 @@
                             </Menubar.RadioGroup>
                         </Menubar.SubContent>
                     </Menubar.Sub>
-                    <Menubar.Separator />
-                    <Menubar.Item onclick={() => (layerSettingsOpen = true)}>
-                        <Layers size="16" />
-                        {i18n._('menu.layers')}
-                    </Menubar.Item>
+                    <!-- Map layer management is hidden for now; it returns
+                         once the layer catalog is curated for the app. -->
                 </Menubar.Content>
             </Menubar.Menu>
         </Menubar.Root>
+        <div class="ml-auto shrink-0">
+            <ButtonWithTooltip
+                variant="outline"
+                size="sm"
+                class="gap-1 h-7 px-1.5 text-xs"
+                label={i18n._('library.sync_tooltip')}
+                onclick={() => toast.info(i18n._('library.sync_coming_soon'))}
+            >
+                <CloudUpload size="15" />
+            </ButtonWithTooltip>
+        </div>
     </div>
 </div>
 
@@ -515,9 +512,6 @@
 
         if (e.key === '+' && (e.metaKey || e.ctrlKey)) {
             createFile();
-            e.preventDefault();
-        } else if (e.key === 'o' && (e.metaKey || e.ctrlKey)) {
-            triggerFileInput();
             e.preventDefault();
         } else if (e.key === 'd' && (e.metaKey || e.ctrlKey)) {
             fileActions.duplicateSelection();
@@ -623,10 +617,10 @@
     }}
     on:dragover={(e) => e.preventDefault()}
     on:drop={(e) => {
+        // GPX files are imported by dropping them on an adventure (or its
+        // track pane), never anywhere else: swallowing the window drop
+        // prevents the browser from navigating to the dropped file.
         e.preventDefault();
-        if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-            loadFiles(e.dataTransfer.files);
-        }
     }}
 />
 

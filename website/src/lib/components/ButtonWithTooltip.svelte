@@ -5,6 +5,7 @@
 
     const {
         variant = 'default',
+        size = 'default',
         label,
         side = 'top',
         disabled = false,
@@ -13,6 +14,7 @@
         onclick,
     }: {
         variant?: 'default' | 'secondary' | 'link' | 'destructive' | 'outline' | 'ghost';
+        size?: 'default' | 'sm' | 'lg' | 'icon';
         label: string;
         side?: 'top' | 'right' | 'bottom' | 'left';
         disabled?: boolean;
@@ -26,7 +28,7 @@
     <Tooltip.Root>
         <Tooltip.Trigger>
             {#snippet child({ props })}
-                <Button {...props} {variant} class="bg-inherit {className}" {onclick}>
+                <Button {...props} {variant} {size} {disabled} class="bg-inherit {className}" {onclick}>
                     {@render children()}
                 </Button>
             {/snippet}

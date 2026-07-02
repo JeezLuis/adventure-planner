@@ -6,31 +6,44 @@
     import ExpeditionNode from './ExpeditionNode.svelte';
     import {
         adventures,
-        createAdventure,
-        createExpedition,
-        deleteExpedition,
         expeditions,
+        librarySelection,
+        moveAdventure,
+        moveExpedition,
+        orderRelativeTo,
+        pendingCreation,
+        pendingDeletion,
         renameExpedition,
-        selectedAdventureId,
+        selectLibraryItem,
+        sortByOrder,
         type Expedition,
     } from '$lib/library/library';
+    import { dropZone, getLibraryDrag, isLibraryDrag, startLibraryDrag } from './dnd';
     import { i18n } from '$lib/i18n.svelte';
 
     /**
-     * One expedition in the library panel: a collapsible header followed by
-     * its nested expeditions and adventures. Renders itself recursively.
+     * One expedition in the library tree: a selectable header (click selects
+     * the expedition, so the track pane and the map show every track nested
+     * below it) followed by its nested expeditions and adventures. The chevron
+     * collapses the subtree; the row can be dragged into another expedition
+     * and receives adventure and expedition drops.
      */
     let { expedition }: { expedition: Expedition } = $props();
 
     let open = $state(true);
     let editing = $state(false);
     let editedName = $state('');
+    let dropTarget = $state(false);
+
+    let selected = $derived(
+        $librarySelection.some((item) => item.kind === 'expedition' && item.id === expedition.id)
+    );
 
     let childExpeditions = $derived(
-        $expeditions.filter((candidate) => candidate.parentId === expedition.id)
+        sortByOrder($expeditions.filter((candidate) => candidate.parentId === expedition.id))
     );
     let childAdventures = $derived(
-        $adventures.filter((candidate) => candidate.expeditionId === expedition.id)
+        sortByOrder($adventures.filter((candidate) => candidate.expeditionId === expedition.id))
     );
 
     function startRename() {
@@ -46,21 +59,45 @@
         }
     }
 
-    async function newAdventureHere() {
-        const id = await createAdventure(
-            expedition.id,
-            `${i18n._('library.new_adventure_name')} ${childAdventures.length + 1}`
-        );
-        selectedAdventureId.set(id);
+    function newAdventureHere() {
+        pendingCreation.set({ kind: 'adventure', parentId: expedition.id });
         open = true;
     }
 
-    async function newExpeditionHere() {
-        await createExpedition(
-            expedition.id,
-            `${i18n._('library.new_expedition_name')} ${childExpeditions.length + 1}`
-        );
+    function newExpeditionHere() {
+        pendingCreation.set({ kind: 'expedition', parentId: expedition.id });
         open = true;
+    }
+
+    function onDrop(e: DragEvent) {
+        dropTarget = false;
+        const drag = getLibraryDrag(e);
+        if (!drag) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        if (drag.kind === 'adventure') {
+            moveAdventure(drag.id, expedition.id);
+            open = true;
+        } else if (drag.id !== expedition.id) {
+            // The row's middle nests the dragged expedition inside; its edges
+            // reorder it among this expedition's siblings.
+            const zone = dropZone(e, true);
+            if (zone === 'inside') {
+                moveExpedition(drag.id, expedition.id);
+                open = true;
+            } else {
+                const siblings = $expeditions.filter(
+                    (candidate) => candidate.parentId === expedition.parentId
+                );
+                moveExpedition(
+                    drag.id,
+                    expedition.parentId,
+                    orderRelativeTo(siblings, expedition.id, zone === 'before')
+                );
+            }
+        }
     }
 </script>
 
@@ -79,19 +116,50 @@
                     autofocus
                 />
             {:else}
-                <button
-                    class="w-full flex flex-row items-center gap-1.5 px-1 py-0.5 rounded text-sm font-semibold hover:bg-accent"
-                    onclick={() => (open = !open)}
-                    ondblclick={startRename}
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                    class="w-full flex flex-row items-center gap-1 rounded {selected
+                        ? 'bg-accent'
+                        : ''} {dropTarget ? 'ring-1 ring-ring' : ''}"
+                    ondragover={(e) => {
+                        if (isLibraryDrag(e)) {
+                            e.preventDefault();
+                            dropTarget = true;
+                        }
+                    }}
+                    ondragleave={() => (dropTarget = false)}
+                    ondrop={onDrop}
                 >
-                    {#if open}
-                        <ChevronDown size="14" class="shrink-0" />
-                    {:else}
-                        <ChevronRight size="14" class="shrink-0" />
-                    {/if}
-                    <Mountain size="14" class="shrink-0 text-muted-foreground" />
-                    <span class="truncate">{expedition.name}</span>
-                </button>
+                    <button
+                        class="shrink-0 px-0.5 py-0.5 rounded hover:bg-accent"
+                        aria-label={i18n._(open ? 'menu.collapse' : 'menu.expand')}
+                        onclick={(e) => {
+                            e.stopPropagation();
+                            open = !open;
+                        }}
+                    >
+                        {#if open}
+                            <ChevronDown size="14" class="shrink-0" />
+                        {:else}
+                            <ChevronRight size="14" class="shrink-0" />
+                        {/if}
+                    </button>
+                    <button
+                        class="grow min-w-0 flex flex-row items-center gap-1.5 py-0.5 rounded text-sm font-semibold hover:bg-accent"
+                        draggable="true"
+                        ondragstart={(e) =>
+                            startLibraryDrag(e, { kind: 'expedition', id: expedition.id })}
+                        onclick={(e) =>
+                            selectLibraryItem(
+                                { kind: 'expedition', id: expedition.id },
+                                e.ctrlKey || e.metaKey
+                            )}
+                        ondblclick={startRename}
+                    >
+                        <Mountain size="14" class="shrink-0 text-muted-foreground" />
+                        <span class="truncate">{expedition.name}</span>
+                    </button>
+                </div>
             {/if}
         </ContextMenu.Trigger>
         <ContextMenu.Content>
@@ -103,7 +171,9 @@
             </ContextMenu.Item>
             <ContextMenu.Separator />
             <ContextMenu.Item onclick={startRename}>{i18n._('library.rename')}</ContextMenu.Item>
-            <ContextMenu.Item onclick={() => deleteExpedition(expedition.id)}>
+            <ContextMenu.Item
+                onclick={() => pendingDeletion.set({ kind: 'expedition', id: expedition.id })}
+            >
                 {i18n._('library.delete')}
             </ContextMenu.Item>
         </ContextMenu.Content>

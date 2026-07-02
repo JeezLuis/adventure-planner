@@ -299,11 +299,14 @@ export const settings = {
     fileOrder: new Setting<string[]>('fileOrder', []),
     defaultOpacity: new Setting('defaultOpacity', 0.7),
     defaultWidth: new Setting('defaultWidth', browser && window.innerWidth < 600 ? 8 : 5),
-    bottomPanelSize: new Setting('bottomPanelSize', 170),
-    /** Whether the track-info panel (statistics + elevation profile) is expanded. */
-    bottomPanelVisible: new Setting('bottomPanelVisible', true),
+    /** Height in pixels of the track-info panel (statistics + elevation profile). */
+    bottomPanelSize: new Setting('bottomPanelSize', 260),
+    /** Whether the track-info panel (statistics + elevation profile) is expanded. Collapsed by default. */
+    bottomPanelVisible: new Setting('bottomPanelVisible', false),
     /** Width in pixels of the permanent library panel on the left. */
     leftPanelSize: new Setting('leftPanelSize', 300),
+    /** Height in pixels of the track list pane at the bottom of the library panel. */
+    libraryTracksPanelSize: new Setting('libraryTracksPanelSize', 260),
     connectToDatabase(db: Database) {
         for (const key in settings) {
             const setting = (settings as any)[key];

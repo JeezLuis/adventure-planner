@@ -32,6 +32,42 @@ import { settings } from '$lib/logic/settings';
 import { getClosestLinePoint, getClosestTrackSegments, getElevation } from '$lib/utils';
 import { gpxStatistics } from '$lib/logic/statistics';
 import { boundsManager } from './bounds';
+import {
+    adventures,
+    adventureIdsOfSelection,
+    deleteAdventure,
+    deleteExpeditionCascade,
+    expeditions,
+    queuePlacement,
+    trackPlacements,
+    type LibrarySelectionItem,
+} from '$lib/library/library';
+
+/**
+ * Deletes an adventure or an expedition (with everything nested below it)
+ * together with all the tracks it contains. The tracks are deleted through
+ * the file action manager, so THAT part is undoable; the library containers
+ * themselves are not.
+ */
+export async function deleteLibraryItem(item: LibrarySelectionItem): Promise<void> {
+    const adventureIds = adventureIdsOfSelection([item], get(expeditions), get(adventures));
+    const fileIds: string[] = [];
+    get(trackPlacements).forEach((adventureId, fileId) => {
+        if (adventureIds.has(adventureId)) {
+            fileIds.push(fileId);
+        }
+    });
+    if (fileIds.length > 0) {
+        fileActionManager.applyGlobal((draft) => {
+            fileIds.forEach((fileId) => draft.delete(fileId));
+        });
+    }
+    if (item.kind === 'adventure') {
+        await deleteAdventure(item.id);
+    } else {
+        await deleteExpeditionCascade(item.id);
+    }
+}
 
 // Generate unique file ids, different from the ones in the database
 export function getFileIds(n: number) {
@@ -149,7 +185,7 @@ export const fileActions = {
             return;
         }
         fileActionManager.applyGlobal((draft) => {
-            let ids = getFileIds(get(settings.fileOrder).length);
+            let ids = getFileIds(get(selection).size);
             let index = 0;
             selection.applyToOrderedSelectedItemsFromFile((fileId, level, items) => {
                 if (level === ListLevel.FILE) {
@@ -157,6 +193,9 @@ export const fileActions = {
                     if (file) {
                         let newFile = file.clone();
                         newFile._data.id = ids[index++];
+                        // The copy belongs next to its source, not in the
+                        // currently selected adventure.
+                        queuePlacement(newFile._data.id, get(trackPlacements).get(fileId) ?? null);
                         draft.set(newFile._data.id, freeze(newFile));
                     }
                 } else {
@@ -195,6 +234,20 @@ export const fileActions = {
                             }
                         }
                     }
+                }
+            });
+        });
+    },
+    copyFilesTo: (fileIds: string[], adventureId: string) => {
+        fileActionManager.applyGlobal((draft) => {
+            let ids = getFileIds(fileIds.length);
+            fileIds.forEach((fileId, index) => {
+                let file = fileStateCollection.getFile(fileId);
+                if (file) {
+                    let newFile = file.clone();
+                    newFile._data.id = ids[index];
+                    queuePlacement(newFile._data.id, adventureId);
+                    draft.set(newFile._data.id, freeze(newFile));
                 }
             });
         });

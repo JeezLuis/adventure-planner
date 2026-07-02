@@ -1,43 +1,37 @@
 <script lang="ts">
-    import { setContext } from 'svelte';
     import { ScrollArea } from '$lib/components/ui/scroll-area/index';
-    import { Inbox } from '@lucide/svelte';
+    import { Mountain, Tent } from '@lucide/svelte';
     import ExpeditionNode from './ExpeditionNode.svelte';
     import AdventureNode from './AdventureNode.svelte';
-    import FileListNode from '$lib/components/file-list/FileListNode.svelte';
-    import { ListRootItem } from '$lib/components/file-list/file-list';
-    import { fileStateCollection } from '$lib/logic/file-state';
-    import {
-        adventures,
-        expeditions,
-        selectedAdventureId,
-        trackPlacements,
-    } from '$lib/library/library';
+    import TrackDropDialog from './TrackDropDialog.svelte';
+    import DeleteLibraryItemDialog from './DeleteLibraryItemDialog.svelte';
+    import CreateLibraryItemDialog from './CreateLibraryItemDialog.svelte';
+    import { adventures, expeditions, moveExpedition, sortByOrder } from '$lib/library/library';
+    import { getLibraryDrag, isExpeditionDrag } from './dnd';
     import { i18n } from '$lib/i18n.svelte';
 
     /**
-     * The library panel tree: expeditions (nestable) ▸ adventures ▸ tracks,
-     * plus an "Unsorted" section for tracks not placed in any adventure.
-     * Track rows reuse the existing file tree components, so per-track
-     * behavior (selection, visibility, context menu, drag ordering) is
-     * unchanged.
+     * The organisation tree of the library panel: expeditions (nestable) and
+     * adventures. Tracks themselves live in the pane below
+     * ({@link LibraryTracks}); the selected rows (several with ctrl/cmd+click)
+     * decide which tracks that pane and the map show. Expeditions dropped on
+     * the empty area move to the root; adventures always stay inside an
+     * expedition. While the library is empty, inline hints walk the user
+     * through the Expedition > Adventure > Track hierarchy.
      */
-    setContext('orientation', 'vertical');
-    setContext('recursive', true);
+    let rootExpeditions = $derived(sortByOrder($expeditions.filter((e) => e.parentId === null)));
+    // Root-level adventures should no longer exist (adventures are created
+    // inside expeditions), but older libraries may still contain them.
+    let rootAdventures = $derived(sortByOrder($adventures.filter((a) => a.expeditionId === null)));
 
-    let rootExpeditions = $derived($expeditions.filter((e) => e.parentId === null));
-    let rootAdventures = $derived($adventures.filter((a) => a.expeditionId === null));
-
-    /** Tracks not placed in any adventure. */
-    let unsortedFiles = $derived.by(() => {
-        const filtered = new Map();
-        for (const [fileId, state] of $fileStateCollection) {
-            if (!$trackPlacements.has(fileId)) {
-                filtered.set(fileId, state);
-            }
+    function onRootDrop(e: DragEvent) {
+        const drag = getLibraryDrag(e);
+        if (drag?.kind !== 'expedition') {
+            return;
         }
-        return filtered;
-    });
+        e.preventDefault();
+        moveExpedition(drag.id, null);
+    }
 </script>
 
 <ScrollArea
@@ -46,29 +40,40 @@
     scrollbarXClasses=""
     scrollbarYClasses=""
 >
-    <div class="flex flex-col py-1 pl-1 min-h-screen">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+        class="flex flex-col py-1 pl-1 min-h-full"
+        ondragover={(e) => {
+            if (isExpeditionDrag(e)) {
+                e.preventDefault();
+            }
+        }}
+        ondrop={onRootDrop}
+    >
         {#each rootExpeditions as expedition (expedition.id)}
             <ExpeditionNode {expedition} />
         {/each}
         {#each rootAdventures as adventure (adventure.id)}
             <AdventureNode {adventure} />
         {/each}
-        {#if unsortedFiles.size > 0}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
+        {#if $expeditions.length === 0}
             <div
-                class="flex flex-row items-center gap-1.5 px-1 py-0.5 text-sm font-medium text-muted-foreground {$selectedAdventureId ===
-                null
-                    ? ''
-                    : 'opacity-80'}"
-                onclick={() => selectedAdventureId.set(null)}
+                class="m-2 flex flex-col items-center gap-1.5 rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground"
             >
-                <Inbox size="14" class="shrink-0" />
-                {i18n._('library.unsorted')}
+                <Mountain size="16" />
+                {i18n._('library.empty_expeditions')}
             </div>
-            <div class="ml-3">
-                <FileListNode node={unsortedFiles} item={new ListRootItem()} />
+        {:else if $adventures.length === 0}
+            <div
+                class="m-2 flex flex-col items-center gap-1.5 rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground"
+            >
+                <Tent size="16" />
+                {i18n._('library.empty_adventures')}
             </div>
         {/if}
     </div>
 </ScrollArea>
+
+<TrackDropDialog />
+<DeleteLibraryItemDialog />
+<CreateLibraryItemDialog />

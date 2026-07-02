@@ -2,49 +2,43 @@
     import { Tent } from '@lucide/svelte';
     import * as ContextMenu from '$lib/components/ui/context-menu';
     import { Input } from '$lib/components/ui/input';
-    import FileListNode from '$lib/components/file-list/FileListNode.svelte';
-    import { ListRootItem, ListFileItem } from '$lib/components/file-list/file-list';
-    import { fileStateCollection } from '$lib/logic/file-state';
-    import { selection } from '$lib/logic/selection';
+    import { loadFiles } from '$lib/logic/file-actions';
     import {
-        deleteAdventure,
-        placeTracks,
+        adventures,
+        librarySelection,
+        moveAdventure,
+        orderRelativeTo,
+        pendingDeletion,
         renameAdventure,
-        selectedAdventureId,
+        selectLibraryItem,
         trackPlacements,
         type Adventure,
     } from '$lib/library/library';
+    import {
+        dropZone,
+        getLibraryDrag,
+        isAdventureDrag,
+        pendingTrackDrop,
+        startLibraryDrag,
+        trackDropTarget,
+    } from './dnd';
     import { i18n } from '$lib/i18n.svelte';
 
     /**
-     * One adventure in the library panel: a clickable header (click selects
-     * the adventure and all its tracks, so the bottom panel shows totals)
-     * followed by the tracks placed in it.
+     * One adventure in the library tree: a clickable header (click selects
+     * the adventure, so the track pane and the map show its tracks). The row
+     * can be dragged into an expedition and receives track drops (move/copy)
+     * as well as GPX file drops (import); browser-based import lives in the
+     * track pane header.
      */
     let { adventure }: { adventure: Adventure } = $props();
 
     let editing = $state(false);
     let editedName = $state('');
 
-    /** Tracks placed in this adventure, as the filtered file-state map the file tree renders. */
-    let files = $derived.by(() => {
-        const filtered = new Map();
-        for (const [fileId, state] of $fileStateCollection) {
-            if ($trackPlacements.get(fileId) === adventure.id) {
-                filtered.set(fileId, state);
-            }
-        }
-        return filtered;
-    });
-
-    function selectAdventureAndTracks() {
-        selectedAdventureId.set(adventure.id);
-        const fileIds = [...files.keys()];
-        if (fileIds.length > 0) {
-            selection.selectFile(fileIds[0]);
-            fileIds.slice(1).forEach((fileId) => selection.addSelectFile(fileId));
-        }
-    }
+    let selected = $derived(
+        $librarySelection.some((item) => item.kind === 'adventure' && item.id === adventure.id)
+    );
 
     function startRename() {
         editedName = adventure.name;
@@ -59,18 +53,57 @@
         }
     }
 
-    function moveSelectedTracksHere() {
-        const fileIds = $selection
-            .getSelected()
-            .filter((item) => item instanceof ListFileItem)
-            .map((item) => item.getFileId());
-        if (fileIds.length > 0) {
-            placeTracks(fileIds, adventure.id);
+    /** Tracks dropped here: ask whether to move or copy (already-contained ones need neither). */
+    function onTracksDropped(droppedFileIds: string[]) {
+        const incoming = droppedFileIds.filter(
+            (fileId) => $trackPlacements.get(fileId) !== adventure.id
+        );
+        if (incoming.length > 0) {
+            pendingTrackDrop.set({ fileIds: incoming, adventureId: adventure.id });
         }
     }
+
+    /**
+     * Native drops on the row: GPX files are imported into this adventure;
+     * another adventure is reordered before or after this one (adopting this
+     * one's expedition when it comes from elsewhere).
+     */
+    function onDrop(e: DragEvent) {
+        if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            selectLibraryItem({ kind: 'adventure', id: adventure.id }, false);
+            loadFiles(e.dataTransfer.files);
+            return;
+        }
+        const drag = getLibraryDrag(e);
+        if (drag?.kind !== 'adventure' || drag.id === adventure.id) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        const siblings = $adventures.filter(
+            (candidate) => candidate.expeditionId === adventure.expeditionId
+        );
+        moveAdventure(
+            drag.id,
+            adventure.expeditionId,
+            orderRelativeTo(siblings, adventure.id, dropZone(e, false) === 'before')
+        );
+    }
+
 </script>
 
-<div class="flex flex-col">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+    use:trackDropTarget={onTracksDropped}
+    ondragover={(e) => {
+        if (e.dataTransfer?.types.includes('Files') || isAdventureDrag(e)) {
+            e.preventDefault();
+        }
+    }}
+    ondrop={onDrop}
+>
     <ContextMenu.Root>
         <ContextMenu.Trigger>
             {#if editing}
@@ -86,33 +119,31 @@
                 />
             {:else}
                 <button
-                    class="w-full flex flex-row items-center gap-1.5 px-1 py-0.5 rounded text-sm font-medium hover:bg-accent {$selectedAdventureId ===
-                    adventure.id
+                    class="w-full flex flex-row items-center gap-1.5 px-1 py-0.5 rounded text-sm font-medium hover:bg-accent {selected
                         ? 'bg-accent'
                         : ''}"
+                    draggable="true"
+                    ondragstart={(e) =>
+                        startLibraryDrag(e, { kind: 'adventure', id: adventure.id })}
                     ondblclick={startRename}
-                    onclick={selectAdventureAndTracks}
+                    onclick={(e) =>
+                        selectLibraryItem(
+                            { kind: 'adventure', id: adventure.id },
+                            e.ctrlKey || e.metaKey
+                        )}
                 >
                     <Tent size="14" class="shrink-0 text-muted-foreground" />
                     <span class="truncate">{adventure.name}</span>
-                    <span class="ml-auto text-xs text-muted-foreground">{files.size}</span>
                 </button>
             {/if}
         </ContextMenu.Trigger>
         <ContextMenu.Content>
-            <ContextMenu.Item onclick={moveSelectedTracksHere} disabled={$selection.size === 0}>
-                {i18n._('library.move_selected_here')}
-            </ContextMenu.Item>
-            <ContextMenu.Separator />
             <ContextMenu.Item onclick={startRename}>{i18n._('library.rename')}</ContextMenu.Item>
-            <ContextMenu.Item onclick={() => deleteAdventure(adventure.id)}>
+            <ContextMenu.Item
+                onclick={() => pendingDeletion.set({ kind: 'adventure', id: adventure.id })}
+            >
                 {i18n._('library.delete')}
             </ContextMenu.Item>
         </ContextMenu.Content>
     </ContextMenu.Root>
-    {#if files.size > 0}
-        <div class="ml-3">
-            <FileListNode node={files} item={new ListRootItem()} />
-        </div>
-    {/if}
 </div>
