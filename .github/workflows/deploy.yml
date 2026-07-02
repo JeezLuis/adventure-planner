@@ -28,15 +28,16 @@ jobs:
             - name: Install dependencies for website
               run: npm install --prefix website
 
-            - name: Create env file
-              run: |
-                  touch website/.env
-                  echo PUBLIC_MAPTILER_KEY=${{ secrets.PUBLIC_MAPTILER_KEY }} >> website/.env
-                  cat website/.env
-
             - name: Build website
               env:
                   BASE_PATH: ''
+                  # Public build-time configuration (see website/.env.example).
+                  # These values are baked into the client bundle and are not
+                  # secrets; the MapTiler key is origin-restricted in the
+                  # MapTiler dashboard.
+                  PUBLIC_MAPTILER_KEY: ${{ secrets.PUBLIC_MAPTILER_KEY }}
+                  PUBLIC_BROUTER_URL: https://brouter.de/brouter
+                  PUBLIC_ELEVATION_TILE_URL: https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png
               run: |
                   npm run build --prefix website
 
