@@ -3,6 +3,13 @@ on:
     push:
         branches: 'main'
 
+# Allow only one Pages deployment at a time. New pushes queue behind an
+# in-flight deployment instead of cancelling it, so a retry during a GitHub
+# Pages incident can never race a stuck deployment.
+concurrency:
+    group: 'pages'
+    cancel-in-progress: false
+
 jobs:
     build_site:
         runs-on: ubuntu-latest
