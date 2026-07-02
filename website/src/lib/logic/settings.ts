@@ -237,6 +237,7 @@ export const settings = {
         getValueValidator(['slope', 'surface', 'highway', undefined], undefined)
     ),
     minimizeRoutingMenu: new Setting('minimizeRoutingMenu', false),
+    showAdvancedTools: new Setting('showAdvancedTools', false),
     routing: new Setting('routing', true),
     routingProfile: new Setting<RoutingProfile>(
         'routingProfile',

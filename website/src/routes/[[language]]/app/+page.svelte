@@ -84,8 +84,6 @@
     <h2>{i18n._('toolbar.routing.tooltip')}</h2>
     <p>{i18n._('toolbar.routing.help_no_file')}</p>
     <p>{i18n._('toolbar.routing.help')}</p>
-    <h3>{i18n._('toolbar.routing.reverse.button')}</h3>
-    <p>{i18n._('toolbar.routing.reverse.tooltip')}</p>
     <h3>{i18n._('toolbar.routing.route_back_to_start.button')}</h3>
     <p>{i18n._('toolbar.routing.route_back_to_start.tooltip')}</p>
     <h3>{i18n._('toolbar.routing.round_trip.button')}</h3>
@@ -95,10 +93,10 @@
     <p>{i18n._('toolbar.scissors.help')}</p>
     <h2>{i18n._('toolbar.time.tooltip')}</h2>
     <p>{i18n._('toolbar.time.help')}</p>
+    <h2>{i18n._('toolbar.join.tooltip')}</h2>
+    <p>{i18n._('toolbar.join.help')}</p>
+    <h2>{i18n._('toolbar.reverse.tooltip')}</h2>
     <h2>{i18n._('toolbar.merge.tooltip')}</h2>
-    <h3>{i18n._('toolbar.merge.merge_traces')}</h3>
-    <p>{i18n._('toolbar.merge.help_merge_traces')}</p>
-    <h3>{i18n._('toolbar.merge.merge_contents')}</h3>
     <p>{i18n._('toolbar.merge.help_merge_contents')}</p>
     <h2>{i18n._('toolbar.elevation.button')}</h2>
     <p>{i18n._('toolbar.elevation.help')}</p>

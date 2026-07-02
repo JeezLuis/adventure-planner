@@ -86,10 +86,6 @@
             "use_routing": "Ruteo",
             "use_routing_tooltip": "Conectar puntos de anclaje a través de la red vial o en línea recta si está desactivado",
             "allow_private": "Permitir caminos privados",
-            "reverse": {
-                "button": "Invertir track",
-                "tooltip": "Invertir la dirección de la ruta"
-            },
             "route_back_to_start": {
                 "button": "Volver al inicio",
                 "tooltip": "Conectar el último punto de la ruta con el punto de inicio"
@@ -210,14 +206,19 @@
             "help": "Use el formulario para establecer nuevos datos de tiempo.",
             "help_invalid_selection": "Seleccione un único trazado para gestionar sus datos de tiempo."
         },
+        "join": {
+            "tooltip": "Unir rutas",
+            "button": "Unir selección",
+            "remove_gaps": "Eliminar intervalos de tiempo entre rutas",
+            "help": "Al unir las rutas seleccionadas se crea una única ruta continua. Las rutas se conectan siguiendo su orden en la lista de la aventura.",
+            "help_invalid_selection": "Su selección debe contener varias rutas para unirlas."
+        },
+        "reverse": {
+            "tooltip": "Invertir las rutas seleccionadas"
+        },
         "merge": {
-            "merge_traces": "Conectar las trazas",
-            "merge_contents": "Combinar los contenidos y mantener las trazas desconectadas",
             "merge_selection": "Combinar selección",
-            "remove_gaps": "Eliminar intervalos de tiempo entre trazas",
             "tooltip": "Combinar elementos",
-            "help_merge_traces": "Al conectar las trazas seleccionadas se creará una única traza continua.",
-            "help_cannot_merge_traces": "Su selección debe contener varias trazas para conectarlos.",
             "help_merge_contents": "Combinar el contenido de los elementos seleccionados los agrupará dentro del primer elemento.",
             "help_cannot_merge_contents": "Su selección debe contener varios elementos para combinar sus contenidos.",
             "selection_tip": "Consejo: use {KEYBOARD_SHORTCUT} para añadir elementos a la selección."
@@ -261,6 +262,10 @@
             "button": "Eliminar track",
             "help": "Seleccione un área rectangular en el mapa para eliminar puntos GPS y puntos de interés.",
             "help_no_selection": "Seleccione una traza para limpiar puntos GPS y puntos de interés."
+        },
+        "advanced": {
+            "show": "Mostrar herramientas avanzadas",
+            "hide": "Ocultar herramientas avanzadas"
         }
     },
     "layers": {

@@ -13,7 +13,6 @@
         Waves,
         TrainFront,
         Route,
-        ArrowRightLeft,
         House,
         RouteOff,
         Repeat,
@@ -187,15 +186,6 @@
             {/if}
         </div>
         <div class="flex flex-row flex-wrap justify-center gap-1">
-            <ButtonWithTooltip
-                label={i18n._('toolbar.routing.reverse.tooltip')}
-                variant="outline"
-                class="gap-1 text-xs px-1.5 py-1.5 h-fit"
-                disabled={!validSelection}
-                onclick={fileActions.reverseSelection}
-            >
-                <ArrowRightLeft class="size-3" />{i18n._('toolbar.routing.reverse.button')}
-            </ButtonWithTooltip>
             <ButtonWithTooltip
                 label={i18n._('toolbar.routing.route_back_to_start.tooltip')}
                 variant="outline"

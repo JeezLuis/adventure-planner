@@ -86,10 +86,6 @@
             "use_routing": "Routing",
             "use_routing_tooltip": "Connect anchor points via road network, or in a straight line if disabled",
             "allow_private": "Allow private roads",
-            "reverse": {
-                "button": "Reverse",
-                "tooltip": "Reverse the direction of the route"
-            },
             "route_back_to_start": {
                 "button": "Back to start",
                 "tooltip": "Connect the last point of the route with the starting point"
@@ -210,14 +206,19 @@
             "help": "Use the form to set new time data.",
             "help_invalid_selection": "Select a single trace to manage its time data."
         },
+        "join": {
+            "tooltip": "Join tracks",
+            "button": "Join selection",
+            "remove_gaps": "Remove time gaps between tracks",
+            "help": "Joining connects the selected tracks into a single continuous track. Tracks are connected following their order in the adventure list.",
+            "help_invalid_selection": "Your selection must contain several tracks to join them."
+        },
+        "reverse": {
+            "tooltip": "Reverse the selected tracks"
+        },
         "merge": {
-            "merge_traces": "Connect the traces",
-            "merge_contents": "Merge the contents and keep the traces disconnected",
             "merge_selection": "Merge selection",
-            "remove_gaps": "Remove time gaps between traces",
             "tooltip": "Merge items together",
-            "help_merge_traces": "Connecting the selected traces will create a single continuous trace.",
-            "help_cannot_merge_traces": "Your selection must contain several traces to connect them.",
             "help_merge_contents": "Merging the contents of the selected items will group all the contents inside the first item.",
             "help_cannot_merge_contents": "Your selection must contain several items to merge their contents.",
             "selection_tip": "Tip: use {KEYBOARD_SHORTCUT} to add items to the selection."
@@ -261,6 +262,10 @@
             "button": "Delete",
             "help": "Select a rectangle area on the map to remove GPS points and points of interest.",
             "help_no_selection": "Select a trace to clean GPS points and points of interest."
+        },
+        "advanced": {
+            "show": "Show advanced tools",
+            "hide": "Hide advanced tools"
         }
     },
     "layers": {

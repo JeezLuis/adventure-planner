@@ -3,6 +3,7 @@
     import * as Card from '$lib/components/ui/card';
     import Routing from '$lib/components/toolbar/tools/routing/Routing.svelte';
     import Scissors from '$lib/components/toolbar/tools/scissors/Scissors.svelte';
+    import Join from '$lib/components/toolbar/tools/Join.svelte';
     import Waypoint from '$lib/components/toolbar/tools/waypoint/Waypoint.svelte';
     import Time from '$lib/components/toolbar/tools/Time.svelte';
     import Merge from '$lib/components/toolbar/tools/Merge.svelte';
@@ -48,6 +49,8 @@
                         <Routing {popup} {popupElement} bind:minimized={$minimizeRoutingMenu} />
                     {:else if $currentTool === Tool.SCISSORS}
                         <Scissors />
+                    {:else if $currentTool === Tool.JOIN}
+                        <Join />
                     {:else if $currentTool === Tool.WAYPOINT}
                         <Waypoint />
                     {:else if $currentTool === Tool.TIME}
