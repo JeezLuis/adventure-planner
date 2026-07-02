@@ -52,7 +52,11 @@ export class MapLibreGLMap {
                 sources: {},
                 layers: [],
             },
-            zoom: 0,
+            // Starting view for first-time visitors (returning ones land on
+            // their last position via the URL hash): the globe large enough
+            // to fill the viewport, centered on Catalonia.
+            center: [1.7, 41.7],
+            zoom: 2.5,
             hash: hash,
             boxZoom: false,
             maxPitch: 90,
