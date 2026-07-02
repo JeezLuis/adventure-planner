@@ -26,7 +26,6 @@ import { map } from '$lib/components/map/map';
 import { ANCHOR_LAYER_KEY } from '$lib/components/map/style';
 import { MAX_ANCHOR_ZOOM, MIN_ANCHOR_ZOOM } from './simplify';
 
-const { streetViewSource } = settings;
 export const canChangeStart = writable(false);
 
 type AnchorProperties = {
@@ -522,7 +521,8 @@ export class RoutingControls {
 
     async appendAnchor(e: maplibregl.MapMouseEvent) {
         // Add a new anchor to the end of the last segment
-        if (get(streetViewEnabled) && get(streetViewSource) === 'google') {
+        // (unless street view mode is capturing map clicks)
+        if (get(streetViewEnabled)) {
             return;
         }
         if (

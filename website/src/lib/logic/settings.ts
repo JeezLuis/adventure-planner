@@ -208,7 +208,6 @@ type RoutingProfile =
     | 'water'
     | 'railway';
 type TerrainSource = 'terrarium';
-type StreetViewSource = 'mapillary' | 'google';
 
 export const settings = {
     distanceUnits: new Setting<DistanceUnits>(
@@ -298,11 +297,6 @@ export const settings = {
     ),
     directionMarkers: new Setting('directionMarkers', false),
     distanceMarkers: new Setting('distanceMarkers', false),
-    streetViewSource: new Setting<StreetViewSource>(
-        'streetViewSource',
-        'mapillary',
-        getValueValidator<StreetViewSource>(['mapillary', 'google'], 'mapillary')
-    ),
     fileOrder: new Setting<string[]>('fileOrder', []),
     defaultOpacity: new Setting('defaultOpacity', 0.7),
     defaultWidth: new Setting('defaultWidth', browser && window.innerWidth < 600 ? 8 : 5),

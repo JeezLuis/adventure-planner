@@ -2,50 +2,29 @@
     import { streetViewEnabled } from '$lib/components/map/street-view-control/utils';
     import { map } from '$lib/components/map/map';
     import CustomControl from '$lib/components/map/custom-control/CustomControl.svelte';
-    import { PersonStanding, X } from '@lucide/svelte';
-    import { MapillaryLayer } from './mapillary';
+    import { PersonStanding } from '@lucide/svelte';
     import { GoogleRedirect } from './google';
-    import { settings } from '$lib/logic/settings';
     import { i18n } from '$lib/i18n.svelte';
     import { onMount } from 'svelte';
     import ButtonWithTooltip from '$lib/components/ButtonWithTooltip.svelte';
 
-    const { streetViewSource } = settings;
-
+    /**
+     * Street view toggle. When enabled, clicking the map opens the location
+     * in Google Street View (plain URL redirect — no API key involved).
+     */
     let googleRedirect: GoogleRedirect | null = $state(null);
-    let mapillaryLayer: MapillaryLayer | null = $state(null);
-    let mapillaryOpen = $state({
-        value: false,
-    });
-    let container: HTMLElement;
 
     onMount(() => {
         map.onLoad((map_: maplibregl.Map) => {
             googleRedirect = new GoogleRedirect(map_);
-            mapillaryLayer = new MapillaryLayer(
-                map_,
-                map.layerEventManager!,
-                container,
-                mapillaryOpen
-            );
         });
     });
 
     $effect(() => {
-        if ($streetViewSource === 'mapillary') {
-            googleRedirect?.remove();
-            if ($streetViewEnabled) {
-                mapillaryLayer?.add();
-            } else {
-                mapillaryLayer?.remove();
-            }
+        if ($streetViewEnabled) {
+            googleRedirect?.add();
         } else {
-            mapillaryLayer?.remove();
-            if ($streetViewEnabled) {
-                googleRedirect?.add();
-            } else {
-                googleRedirect?.remove();
-            }
+            googleRedirect?.remove();
         }
     });
 </script>
@@ -67,23 +46,3 @@
         />
     </ButtonWithTooltip>
 </CustomControl>
-
-<div
-    bind:this={container}
-    class="{mapillaryOpen.value
-        ? ''
-        : 'hidden'} !absolute bottom-[44px] right-2.5 z-10 w-[40%] h-[40%] bg-background rounded-md overflow-hidden border-background border-2"
->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-        class="absolute top-0 right-0 z-10 bg-background p-1 rounded-bl-md cursor-pointer"
-        onclick={() => {
-            if (mapillaryLayer) {
-                mapillaryLayer.closePopup();
-            }
-        }}
-    >
-        <X size="16" />
-    </div>
-</div>

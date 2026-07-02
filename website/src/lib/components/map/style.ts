@@ -23,7 +23,6 @@ const emptySource: maplibregl.GeoJSONSourceSpecification = {
 };
 export const ANCHOR_LAYER_KEY = {
     overlays: 'overlays-end',
-    mapillary: 'mapillary-end',
     tracks: 'tracks-end',
     directionMarkers: 'direction-markers-end',
     distanceMarkers: 'distance-markers-end',
