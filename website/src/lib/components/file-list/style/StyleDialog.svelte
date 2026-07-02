@@ -17,6 +17,7 @@
     import { selection } from '$lib/logic/selection';
     import { fileStateCollection } from '$lib/logic/file-state';
     import { gpxLayers } from '$lib/components/map/gpx-layer/gpx-layers';
+    import { trackColorPalette } from '$lib/components/map/gpx-layer/gpx-layer';
     import { untrack } from 'svelte';
     import { fileActions } from '$lib/logic/file-actions';
 
@@ -29,6 +30,9 @@
     } = $props();
 
     const { defaultOpacity, defaultWidth } = settings;
+
+    /** Quick-pick swatches: the first 8 palette colors, shown as a 2x4 grid. */
+    const swatchColors = trackColorPalette.slice(0, 8);
 
     let color: string = $state('');
     let opacity: number = $state(0);
@@ -118,6 +122,13 @@
 
         open = false;
     }
+
+    /** One-click recolor: apply a swatch color right away and close. */
+    function applySwatch(swatch: string) {
+        color = swatch;
+        colorChanged = true;
+        applyStyle();
+    }
 </script>
 
 <Popover.Root bind:open>
@@ -132,6 +143,19 @@
                 onchange={() => (colorChanged = true)}
             />
         </Label>
+        <div class="grid grid-cols-4 gap-1.5 w-40 ml-auto">
+            {#each swatchColors as swatch (swatch)}
+                <button
+                    class="h-6 rounded border border-input hover:scale-110 transition-transform {color ===
+                    swatch
+                        ? 'ring-2 ring-ring'
+                        : ''}"
+                    style="background-color: {swatch}"
+                    aria-label={swatch}
+                    onclick={() => applySwatch(swatch)}
+                ></button>
+            {/each}
+        </div>
         <Label class="flex flex-row gap-2 items-center justify-between">
             {i18n._('menu.style.opacity')}
             <div class="w-40 p-2">
