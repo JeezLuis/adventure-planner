@@ -37,7 +37,9 @@ jobs:
 
             - name: Build website
               env:
-                  BASE_PATH: ''
+                  # Project site on GitHub Pages is served under /adventure-planner;
+                  # must be dropped (or set to '') when moving to a custom domain.
+                  BASE_PATH: '/adventure-planner'
                   # Public build-time configuration (see website/.env.example).
                   # These values are baked into the client bundle and are not
                   # secrets; the MapTiler key is origin-restricted in the
