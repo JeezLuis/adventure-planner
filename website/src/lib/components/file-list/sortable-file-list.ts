@@ -212,14 +212,18 @@ export class SortableFileList {
             return;
         }
 
-        const fileOrder_ = get(fileOrder);
         const sortableOrder = this._sortable.toArray();
+        const inList = new Set(sortableOrder);
+        // This list may hold only a subset of all files (e.g. one adventure of
+        // the library), so it must follow the global order restricted to the
+        // files it actually shows.
+        const restrictedOrder = get(fileOrder).filter((id) => inList.has(id));
 
         if (
-            fileOrder_.length !== sortableOrder.length ||
-            fileOrder_.some((value, index) => value !== sortableOrder[index])
+            restrictedOrder.length === sortableOrder.length &&
+            restrictedOrder.some((value, index) => value !== sortableOrder[index])
         ) {
-            this._sortable.sort(fileOrder_);
+            this._sortable.sort(restrictedOrder);
         }
     }
 
@@ -231,15 +235,52 @@ export class SortableFileList {
         const fileOrder_ = get(fileOrder);
         const sortableOrder = this._sortable.toArray();
 
+        // This list may hold only a subset of all files, so replacing the
+        // global order outright would forget every file that lives in another
+        // list (which silently broke all selection-based actions, duplicate
+        // included). Merge instead: the files of this list keep their global
+        // slots but adopt the list's new relative order, and files the global
+        // order does not know yet are appended.
+        const inList = new Set(sortableOrder);
+        const inGlobal = new Set(fileOrder_);
+        const merged = [...fileOrder_];
+        const slots = merged.reduce<number[]>((slots, id, index) => {
+            if (inList.has(id)) {
+                slots.push(index);
+            }
+            return slots;
+        }, []);
+        const knownOrder = sortableOrder.filter((id: string) => inGlobal.has(id));
+        slots.forEach((slot, index) => {
+            merged[slot] = knownOrder[index];
+        });
+        sortableOrder.forEach((id: string) => {
+            if (!inGlobal.has(id)) {
+                merged.push(id);
+            }
+        });
+
         if (
-            fileOrder_.length !== sortableOrder.length ||
-            fileOrder_.some((value, index) => value !== sortableOrder[index])
+            fileOrder_.length !== merged.length ||
+            fileOrder_.some((value, index) => value !== merged[index])
         ) {
-            fileOrder.set(sortableOrder);
+            fileOrder.set(merged);
         }
     }
 
-    updateElements() {
+    updateElements(
+        node?:
+            | Map<string, Readable<GPXFileWithStatistics | undefined>>
+            | GPXTreeElement<AnyGPXTreeElement>
+            | Waypoint[]
+            | Waypoint
+    ) {
+        if (node !== undefined) {
+            // Keep the node reference fresh: it is replaced on every change
+            // (derived maps are rebuilt), and stale references made this
+            // method delete the DOM rows of newly added files.
+            this._node = node;
+        }
         this._elements = {};
         this._container.childNodes.forEach((element) => {
             if (element instanceof HTMLElement) {
