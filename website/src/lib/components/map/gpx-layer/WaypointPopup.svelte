@@ -60,7 +60,7 @@
                 <span>
                     {#if symbols[symbolKey].icon}
                         {@const Icon = symbols[symbolKey].icon}
-                        <Icon size="12" class="inline-block mb-1" />
+                        <Icon size="12" class="inline-block mb-1" color={symbols[symbolKey].color} />
                     {:else}
                         <span class="w-4 inline-block"></span>
                     {/if}

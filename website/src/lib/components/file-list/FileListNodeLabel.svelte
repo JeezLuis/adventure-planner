@@ -187,7 +187,7 @@
                 {:else if item.level === ListLevel.WAYPOINT}
                     {#if symbolKey && symbols[symbolKey].icon}
                         {@const SymbolIcon = symbols[symbolKey].icon}
-                        <SymbolIcon size="16" class="mx-1 shrink-0" />
+                        <SymbolIcon size="16" class="mx-1 shrink-0" color={symbols[symbolKey].color} />
                     {:else}
                         <MapPin size="16" class="mx-1 shrink-0" />
                     {/if}

@@ -18,7 +18,7 @@ import {
 import { getClosestLinePoint, getElevation, loadSVGIcon } from '$lib/utils';
 import { selectedWaypoint } from '$lib/components/toolbar/tools/waypoint/waypoint';
 import { MapPin, Square } from 'lucide-static';
-import { getSymbolKey, symbols } from '$lib/assets/symbols';
+import { DEFAULT_WAYPOINT_COLOR, getSymbolKey, symbols } from '$lib/assets/symbols';
 import type { GPXFileWithStatistics } from '$lib/logic/statistics-tree';
 import { selection } from '$lib/logic/selection';
 import { settings } from '$lib/logic/settings';
@@ -86,6 +86,9 @@ function removeColor(fileId: string, color: string) {
 
 export function getSvgForSymbol(symbol?: string | undefined, layerColor?: string | undefined) {
     let symbolSvg = symbol ? symbols[symbol]?.iconSvg : undefined;
+    // Color code the pin by the semantic family of its symbol; symbol-less
+    // (or unknown) waypoints keep the classic blue.
+    let pinColor = (symbol ? symbols[symbol]?.color : undefined) ?? DEFAULT_WAYPOINT_COLOR;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
     ${
         layerColor
@@ -99,7 +102,10 @@ export function getSvgForSymbol(symbol?: string | undefined, layerColor?: string
     ${MapPin.replace('width="24"', '')
         .replace('height="24"', '')
         .replace('stroke="currentColor"', '')
-        .replace('path', `path fill="#3fb1ce" stroke="SteelBlue" stroke-width="1"`)
+        .replace(
+            'path',
+            `path fill="${pinColor}" stroke="black" stroke-opacity="0.25" stroke-width="1"`
+        )
         .replace(
             'circle',
             `circle fill="${symbolSvg ? 'none' : 'white'}" stroke="${symbolSvg ? 'none' : 'white'}" stroke-width="2"`

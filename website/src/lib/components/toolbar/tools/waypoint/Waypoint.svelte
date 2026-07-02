@@ -192,7 +192,7 @@
                         {#if symbolKey}
                             {#if symbols[symbolKey].icon}
                                 {@const Component = symbols[symbolKey].icon}
-                                <Component size="14" />
+                                <Component size="14" color={symbols[symbolKey].color} />
                             {/if}
                             {i18n._(`gpx.symbol.${symbolKey}`)}
                         {:else}
@@ -206,7 +206,11 @@
                             <span>
                                 {#if symbol.icon}
                                     {@const Component = symbol.icon}
-                                    <Component size="14" class="inline-block align-sub" />
+                                    <Component
+                                        size="14"
+                                        class="inline-block align-sub"
+                                        color={symbol.color}
+                                    />
                                 {:else}
                                     <span class="w-4 inline-block"></span>
                                 {/if}
