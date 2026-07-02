@@ -227,6 +227,30 @@ export class SortableFileList {
         }
     }
 
+    private _applyFileOrderPending = false;
+
+    /**
+     * Re-applies the manual order after the rendered rows changed. Svelte
+     * renders rows in file creation order, so every change of the listed set
+     * (e.g. selecting another adventure in the library) would silently drop
+     * the order the user defined by dragging. Deferred a tick because this
+     * runs from the render effect, before SortableJS has seen the new rows.
+     */
+    private applyFileOrderAfterRender() {
+        if (
+            this._sortableLevel !== ListLevel.FILE ||
+            !this._sortable ||
+            this._applyFileOrderPending
+        ) {
+            return;
+        }
+        this._applyFileOrderPending = true;
+        tick().then(() => {
+            this._applyFileOrderPending = false;
+            this.updateFromFileOrder();
+        });
+    }
+
     updateToFileOrder() {
         if (!this._sortable || this._sortableLevel !== ListLevel.FILE) {
             return;
@@ -294,6 +318,7 @@ export class SortableFileList {
                 }
             }
         });
+        this.applyFileOrderAfterRender();
     }
 
     destroy() {
