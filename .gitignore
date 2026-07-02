@@ -1,1 +1,30 @@
+# --- OS noise ---
 .DS_Store
+
+# --- Secrets: NEVER commit. Real values live in local .env files (dev),
+# --- Cloudflare Pages env settings (frontend), or PocketBase settings on the
+# --- VPS. Only .env.example placeholder files may be committed.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+
+# --- PocketBase runtime data (user data + encrypted settings; server-side only) ---
+pb_data/
+
+# --- Backup archives / database dumps ---
+*.backup
+*.dump
+*.sql
+*.sql.gz
+
+# --- Node ---
+node_modules/
+
+# --- Logs ---
+*.log
