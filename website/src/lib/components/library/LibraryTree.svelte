@@ -6,6 +6,8 @@
     import TrackDropDialog from './TrackDropDialog.svelte';
     import DeleteLibraryItemDialog from './DeleteLibraryItemDialog.svelte';
     import CreateLibraryItemDialog from './CreateLibraryItemDialog.svelte';
+    import LibraryMetadataDialog from './LibraryMetadataDialog.svelte';
+    import BufferDaysDialog from './BufferDaysDialog.svelte';
     import { adventures, expeditions, moveExpedition, sortByOrder } from '$lib/library/library';
     import { getLibraryDrag, isExpeditionDrag } from './dnd';
     import { i18n } from '$lib/i18n.svelte';
@@ -77,3 +79,5 @@
 <TrackDropDialog />
 <DeleteLibraryItemDialog />
 <CreateLibraryItemDialog />
+<LibraryMetadataDialog />
+<BufferDaysDialog />

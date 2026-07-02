@@ -15,6 +15,7 @@
     import WithUnits from '$lib/components/WithUnits.svelte';
     import { ListFileItem, ListRootItem } from '$lib/components/file-list/file-list';
     import { fileStateCollection } from '$lib/logic/file-state';
+    import { selection } from '$lib/logic/selection';
     import { loadFiles, triggerFileInput } from '$lib/logic/file-actions';
     import {
         adventures,
@@ -28,7 +29,8 @@
     /**
      * The track pane at the bottom of the library panel: a title naming the
      * current library selection, the tracks it contains, and a KPI footer
-     * with the selection's aggregate stats. This list and the map always show
+     * with the stats of the selected tracks (or of every listed track while
+     * none is selected). This list and the map always show
      * the same tracks ({@link visibleFileIds}), so the panel reads as a
      * legend of the map. Track rows reuse the existing file tree components,
      * so per-track behavior (selection, visibility, context menu, drag
@@ -56,6 +58,19 @@
             : null
     );
 
+    /** Description of the single selected library item, when it has one. */
+    let description = $derived.by(() => {
+        if ($librarySelection.length !== 1) {
+            return undefined;
+        }
+        const item = $librarySelection[0];
+        const found =
+            item.kind === 'adventure'
+                ? $adventures.find((a) => a.id === item.id)
+                : $expeditions.find((e) => e.id === item.id);
+        return found?.description;
+    });
+
     /** Icon matching what is selected: tent for adventures, mountain for expeditions. */
     let titleIcon = $derived.by(() => {
         if ($librarySelection.length === 0) {
@@ -81,36 +96,58 @@
         return filtered;
     });
 
-    /** Aggregate KPIs of the listed tracks, kept live by subscribing to each file. */
-    let totals = $state({ distance: 0, gain: 0, loss: 0, pois: 0 });
+    /** Per-track KPIs of the listed tracks, kept live by subscribing to each file. */
+    type TrackKPIs = { distance: number; gain: number; loss: number; pois: number };
+    let perTrack = $state(new Map<string, TrackKPIs>());
     $effect(() => {
-        const values = new Map<string, GPXFileWithStatistics | undefined>();
-        const recompute = () => {
-            let distance = 0;
-            let gain = 0;
-            let loss = 0;
-            let pois = 0;
-            values.forEach((value) => {
+        const values = new Map<string, TrackKPIs>();
+        const unsubscribes = [...files].map(([fileId, state]) =>
+            state.subscribe((value: GPXFileWithStatistics | undefined) => {
                 if (value) {
                     const stats = value.statistics.getStatisticsFor(
                         new ListFileItem(value.file._data.id)
                     ).global;
-                    distance += stats.distance.total;
-                    gain += stats.elevation.gain;
-                    loss += stats.elevation.loss;
-                    pois += value.file.wpt.length;
+                    values.set(fileId, {
+                        distance: stats.distance.total,
+                        gain: stats.elevation.gain,
+                        loss: stats.elevation.loss,
+                        pois: value.file.wpt.length,
+                    });
+                } else {
+                    values.delete(fileId);
                 }
-            });
-            totals = { distance, gain, loss, pois };
-        };
-        const unsubscribes = [...files].map(([fileId, state]) =>
-            state.subscribe((value: GPXFileWithStatistics | undefined) => {
-                values.set(fileId, value);
-                recompute();
+                perTrack = new Map(values);
             })
         );
-        recompute();
+        perTrack = new Map(values);
         return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
+    });
+
+    /**
+     * The KPI footer follows the track selection: it sums the tracks with
+     * something selected in them, and falls back to every listed track when
+     * nothing is. Tracks are whole files here, so any selected child (a
+     * segment, a waypoint) counts its whole track.
+     */
+    let totals = $derived.by(() => {
+        const selectedFileIds = new Set(
+            $selection.size > 0 ? $selection.getSelected().map((item) => item.getFileId()) : []
+        );
+        const listed = [...perTrack.keys()];
+        const ids = selectedFileIds.size > 0
+            ? listed.filter((fileId) => selectedFileIds.has(fileId))
+            : listed;
+        const totals = { distance: 0, gain: 0, loss: 0, pois: 0, tracks: ids.length };
+        for (const fileId of ids) {
+            const kpis = perTrack.get(fileId);
+            if (kpis) {
+                totals.distance += kpis.distance;
+                totals.gain += kpis.gain;
+                totals.loss += kpis.loss;
+                totals.pois += kpis.pois;
+            }
+        }
+        return totals;
     });
 
     /** GPX files dropped on the pane are imported into the selected adventure. */
@@ -154,6 +191,14 @@
             </button>
         {/if}
     </div>
+    {#if description}
+        <p
+            class="shrink-0 border-b px-2 py-1 text-xs text-muted-foreground line-clamp-2"
+            title={description}
+        >
+            {description}
+        </p>
+    {/if}
     <ScrollArea
         class="grow min-h-0 p-0 pr-3"
         orientation="vertical"
@@ -172,7 +217,7 @@
             <FileListNode node={files} item={new ListRootItem()} />
         </div>
     </ScrollArea>
-    <!-- KPI footer: aggregate stats of the listed tracks. -->
+    <!-- KPI footer: stats of the selected tracks, or of the whole list. -->
     <div
         class="shrink-0 flex flex-row flex-wrap items-center gap-x-3 gap-y-0.5 border-t px-2 py-1 text-xs text-muted-foreground"
     >
@@ -190,7 +235,7 @@
         </span>
         <span class="flex items-center gap-1" title={i18n._('library.track_count')}>
             <Route size="12" class="shrink-0" />
-            {files.size}
+            {totals.tracks}
         </span>
         <span class="flex items-center gap-1" title={i18n._('library.poi_count')}>
             <MapPin size="12" class="shrink-0" />

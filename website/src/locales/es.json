@@ -496,6 +496,22 @@
         "total_descent": "Descenso total",
         "track_count": "Rutas",
         "poi_count": "POI",
-        "upload_gpx": "Subir GPX"
+        "upload_gpx": "Subir GPX",
+        "save": "Guardar",
+        "edit_adventure": "Editar aventura",
+        "edit_expedition": "Editar expedición",
+        "description_label": "Descripción",
+        "numbering": "Numeración de las rutas",
+        "numbering_help": "Añade una etiqueta delante de cada ruta según su orden dentro de la aventura.",
+        "numbering_none": "Sin numeración",
+        "numbering_numbers": "Números (1, 2, 3...)",
+        "numbering_date": "Fechas del viaje",
+        "numbering_date_help": "Cada ruta es un día del viaje: la primera empieza en la fecha de inicio y cada una de las siguientes avanza un día, más los días extra que añadas a una ruta.",
+        "start_date": "Fecha de inicio",
+        "show_year": "Mostrar el año en las etiquetas",
+        "buffer_days": "Días extra...",
+        "buffer_days_title": "Días extra tras esta ruta",
+        "buffer_days_help": "Días adicionales antes de empezar la siguiente ruta: un día de descanso, margen para un cruce de frontera... Las fechas de las rutas siguientes se retrasan esa cantidad de días.",
+        "buffer_days_label": "Días"
     }
 }

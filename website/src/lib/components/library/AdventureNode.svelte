@@ -9,6 +9,7 @@
         moveAdventure,
         orderRelativeTo,
         pendingDeletion,
+        pendingMetadataEdit,
         renameAdventure,
         selectLibraryItem,
         trackPlacements,
@@ -138,6 +139,11 @@
             {/if}
         </ContextMenu.Trigger>
         <ContextMenu.Content>
+            <ContextMenu.Item
+                onclick={() => pendingMetadataEdit.set({ kind: 'adventure', id: adventure.id })}
+            >
+                {i18n._('library.edit_adventure')}
+            </ContextMenu.Item>
             <ContextMenu.Item onclick={startRename}>{i18n._('library.rename')}</ContextMenu.Item>
             <ContextMenu.Item
                 onclick={() => pendingDeletion.set({ kind: 'adventure', id: adventure.id })}

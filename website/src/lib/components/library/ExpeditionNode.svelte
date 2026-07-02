@@ -13,6 +13,7 @@
         orderRelativeTo,
         pendingCreation,
         pendingDeletion,
+        pendingMetadataEdit,
         renameExpedition,
         selectLibraryItem,
         sortByOrder,
@@ -170,6 +171,11 @@
                 {i18n._('library.new_expedition_here')}
             </ContextMenu.Item>
             <ContextMenu.Separator />
+            <ContextMenu.Item
+                onclick={() => pendingMetadataEdit.set({ kind: 'expedition', id: expedition.id })}
+            >
+                {i18n._('library.edit_expedition')}
+            </ContextMenu.Item>
             <ContextMenu.Item onclick={startRename}>{i18n._('library.rename')}</ContextMenu.Item>
             <ContextMenu.Item
                 onclick={() => pendingDeletion.set({ kind: 'expedition', id: expedition.id })}

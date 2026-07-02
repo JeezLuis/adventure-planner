@@ -19,6 +19,7 @@ import { derived, readable, writable, get, type Readable } from 'svelte/store';
 import { browser } from '$app/environment';
 import { db } from '$lib/db';
 import { selection as editorSelection } from '$lib/logic/selection';
+import { settings } from '$lib/logic/settings';
 
 /** A nestable group of adventures. `parentId` is another expedition id or null for root. */
 export type Expedition = {
@@ -27,7 +28,16 @@ export type Expedition = {
     parentId: string | null;
     /** Manual position among siblings; missing on rows from before ordering existed. */
     order?: number;
+    /** Free-form notes about the expedition. */
+    description?: string;
 };
+
+/**
+ * How the tracks of an adventure are tagged in the track pane, following
+ * their order inside the adventure: not at all, with a sequential stage
+ * number, or with the calendar day of that stage.
+ */
+export type TrackNumbering = 'none' | 'numbers' | 'date';
 
 /** A set of tracks. `expeditionId` is the containing expedition or null for root. */
 export type Adventure = {
@@ -36,6 +46,14 @@ export type Adventure = {
     expeditionId: string | null;
     /** Manual position among siblings; missing on rows from before ordering existed. */
     order?: number;
+    /** Free-form notes about the adventure. */
+    description?: string;
+    /** Track tagging mode; missing means 'none'. */
+    numbering?: TrackNumbering;
+    /** First day of the trip as ISO yyyy-mm-dd; required by the 'date' mode. */
+    startDate?: string;
+    /** Render date tags as dd/mm/yyyy instead of dd/mm. */
+    showYear?: boolean;
 };
 
 /** Sorts expeditions or adventures by their manual position. */
@@ -74,6 +92,12 @@ export function orderRelativeTo<T extends { id: string; order?: number }>(
 export type TrackPlacement = {
     fileId: string;
     adventureId: string;
+    /**
+     * Extra days spent after this track before the next one starts (a rest
+     * day, slack for a border crossing...). Only meaningful under the 'date'
+     * numbering: the dates of the following tracks shift by this amount.
+     */
+    bufferDays?: number;
 };
 
 /**
@@ -102,6 +126,17 @@ export const adventures = liveStore<Adventure[]>(() => db.adventures.toArray(), 
 /** Track placements as a fileId → adventureId map, live from the database. */
 export const trackPlacements = liveStore<Map<string, string>>(
     async () => new Map((await db.trackPlacements.toArray()).map((p) => [p.fileId, p.adventureId])),
+    new Map()
+);
+
+/** Buffer days per track (only entries greater than zero), live from the database. */
+export const trackBufferDays = liveStore<Map<string, number>>(
+    async () =>
+        new Map(
+            (await db.trackPlacements.toArray())
+                .filter((p) => (p.bufferDays ?? 0) > 0)
+                .map((p) => [p.fileId, p.bufferDays as number])
+        ),
     new Map()
 );
 
@@ -186,8 +221,10 @@ export const visibleFileIds: Readable<Set<string>> = derived(
 
 /**
  * Selects a library item, or toggles its membership when `multi` is set
- * (ctrl/cmd+click), and mirrors the resulting tracks into the editor
- * selection so statistics and the elevation profile follow the library.
+ * (ctrl/cmd+click), and selects the first of its tracks (in track pane
+ * order) in the editor, as an anchor for the tools, the statistics and the
+ * elevation profile. Only the first one: selecting everything would make
+ * selection-based tools and stats act on the whole adventure by surprise.
  */
 export function selectLibraryItem(item: LibrarySelectionItem, multi: boolean): void {
     librarySelection.update((items) => {
@@ -215,8 +252,15 @@ export function selectLibraryItem(item: LibrarySelectionItem, multi: boolean): v
         }
     });
     if (fileIds.length > 0) {
-        editorSelection.selectFile(fileIds[0]);
-        fileIds.slice(1).forEach((fileId) => editorSelection.addSelectFile(fileId));
+        const order = get(settings.fileOrder);
+        const indexOf = (fileId: string) => {
+            const index = order.indexOf(fileId);
+            return index === -1 ? Infinity : index;
+        };
+        const first = fileIds.reduce((best, fileId) =>
+            indexOf(fileId) < indexOf(best) ? fileId : best
+        );
+        editorSelection.selectFile(first);
     } else {
         editorSelection.update(($selection) => {
             $selection.clear();
@@ -247,6 +291,27 @@ export async function renameExpedition(id: string, name: string): Promise<void> 
 
 export async function renameAdventure(id: string, name: string): Promise<void> {
     await db.adventures.update(id, { name });
+}
+
+/** Updates the editable metadata of an adventure (see LibraryMetadataDialog). */
+export async function updateAdventure(
+    id: string,
+    changes: Pick<Adventure, 'name' | 'description' | 'numbering' | 'startDate' | 'showYear'>
+): Promise<void> {
+    await db.adventures.update(id, changes);
+}
+
+/** Updates the editable metadata of an expedition (see LibraryMetadataDialog). */
+export async function updateExpedition(
+    id: string,
+    changes: Pick<Expedition, 'name' | 'description'>
+): Promise<void> {
+    await db.expeditions.update(id, changes);
+}
+
+/** Sets the buffer days after a track (0 clears them). */
+export async function setTrackBufferDays(fileId: string, bufferDays: number): Promise<void> {
+    await db.trackPlacements.update(fileId, { bufferDays });
 }
 
 /**
@@ -335,6 +400,72 @@ export async function deleteAdventure(id: string): Promise<void> {
  * DeleteLibraryItemDialog): deleting a container deletes every track inside.
  */
 export const pendingDeletion = writable<LibrarySelectionItem | null>(null);
+
+/** The adventure or expedition whose metadata dialog is open (see LibraryMetadataDialog). */
+export const pendingMetadataEdit = writable<LibrarySelectionItem | null>(null);
+
+/** The track whose buffer-days dialog is open (see BufferDaysDialog). */
+export const pendingBufferEdit = writable<string | null>(null);
+
+/** The tag shown in front of a track name, and the buffer days after that track. */
+export type TrackTag = { label: string; bufferDays: number };
+
+/** A yyyy-mm-dd date shifted by whole days and formatted as dd/mm(/yyyy), UTC-safe. */
+function formatTripDate(startDate: string, offsetDays: number, showYear: boolean): string {
+    const [year, month, day] = startDate.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day) + offsetDays * 24 * 60 * 60 * 1000);
+    const dayMonth = `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+    return showYear ? `${dayMonth}/${date.getUTCFullYear()}` : dayMonth;
+}
+
+/**
+ * The numbering tag of every track whose adventure has one, keyed by file id.
+ * Tracks follow the order of the track pane (the global manual file order);
+ * in 'date' mode each track advances one day, plus the buffer days of the
+ * tracks before it.
+ */
+export const trackTags: Readable<Map<string, TrackTag>> = derived(
+    [adventures, trackPlacements, trackBufferDays, settings.fileOrder],
+    ([$adventures, $placements, $buffers, $fileOrder]) => {
+        const tags = new Map<string, TrackTag>();
+        const filesByAdventure = new Map<string, string[]>();
+        const ordered = [...$fileOrder, ...[...$placements.keys()].filter((fileId) => !$fileOrder.includes(fileId))];
+        ordered.forEach((fileId) => {
+            const adventureId = $placements.get(fileId);
+            if (adventureId !== undefined) {
+                const files = filesByAdventure.get(adventureId) ?? [];
+                files.push(fileId);
+                filesByAdventure.set(adventureId, files);
+            }
+        });
+        $adventures.forEach((adventure) => {
+            const files = filesByAdventure.get(adventure.id) ?? [];
+            if (adventure.numbering === 'numbers') {
+                files.forEach((fileId, index) => {
+                    tags.set(fileId, {
+                        label: `${index + 1}`,
+                        bufferDays: $buffers.get(fileId) ?? 0,
+                    });
+                });
+            } else if (adventure.numbering === 'date' && adventure.startDate !== undefined) {
+                let dayOffset = 0;
+                files.forEach((fileId) => {
+                    const bufferDays = $buffers.get(fileId) ?? 0;
+                    tags.set(fileId, {
+                        label: formatTripDate(
+                            adventure.startDate as string,
+                            dayOffset,
+                            adventure.showYear ?? false
+                        ),
+                        bufferDays,
+                    });
+                    dayOffset += 1 + bufferDays;
+                });
+            }
+        });
+        return tags;
+    }
+);
 
 /**
  * A creation of an expedition or adventure awaiting its name (see

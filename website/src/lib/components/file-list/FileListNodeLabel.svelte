@@ -3,6 +3,7 @@
     import * as ContextMenu from '$lib/components/ui/context-menu';
     import Shortcut from '$lib/components/Shortcut.svelte';
     import {
+        CalendarPlus,
         Copy,
         Info,
         MapPin,
@@ -41,6 +42,12 @@
     import { fileStateCollection } from '$lib/logic/file-state';
     import { waypointPopup } from '$lib/components/map/gpx-layer/gpx-layer-popup';
     import { allowedPastes } from './sortable-file-list';
+    import {
+        adventures,
+        pendingBufferEdit,
+        trackPlacements,
+        trackTags,
+    } from '$lib/library/library';
 
     let {
         node,
@@ -98,6 +105,22 @@
     let hidden = $derived(
         item.level === ListLevel.WAYPOINTS ? node._data.hiddenWpt : node._data.hidden
     );
+
+    /** Numbering tag of this track, when its adventure numbers tracks. */
+    let trackTag = $derived(
+        item.level === ListLevel.FILE ? $trackTags.get(item.getFileId()) : undefined
+    );
+
+    /** The adventure containing this track, to offer buffer days under 'date' numbering. */
+    let fileAdventure = $derived.by(() => {
+        if (!(item instanceof ListFileItem)) {
+            return undefined;
+        }
+        const adventureId = $trackPlacements.get(item.getFileId());
+        return adventureId !== undefined
+            ? $adventures.find((adventure) => adventure.id === adventureId)
+            : undefined;
+    });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -192,6 +215,21 @@
                         <MapPin size="16" class="mx-1 shrink-0" />
                     {/if}
                 {/if}
+                {#if trackTag}
+                    <span
+                        class="shrink-0 mr-1 rounded bg-accent px-1 text-[10px] font-semibold tabular-nums text-accent-foreground"
+                    >
+                        {trackTag.label}
+                    </span>
+                    {#if trackTag.bufferDays > 0}
+                        <span
+                            class="shrink-0 mr-1 rounded bg-amber-500/15 px-1 text-[10px] font-semibold tabular-nums text-amber-600"
+                            title={i18n._('library.buffer_days_title')}
+                        >
+                            +{trackTag.bufferDays}
+                        </span>
+                    {/if}
+                {/if}
                 <span
                     class="grow select-none truncate {orientation === 'vertical'
                         ? 'last:mr-2'
@@ -223,6 +261,15 @@
             <ContextMenu.Item onclick={() => (editStyle.current = true)}>
                 <PaintBucket size="16" />
                 {i18n._('menu.style.button')}
+            </ContextMenu.Item>
+        {/if}
+        {#if item instanceof ListFileItem && fileAdventure?.numbering === 'date'}
+            <ContextMenu.Item
+                disabled={!singleSelection}
+                onclick={() => pendingBufferEdit.set(item.getFileId())}
+            >
+                <CalendarPlus size="16" />
+                {i18n._('library.buffer_days')}
             </ContextMenu.Item>
         {/if}
         <ContextMenu.Item
