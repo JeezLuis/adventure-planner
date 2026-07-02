@@ -106,8 +106,9 @@
     <div class="flex flex-col grow h-full min-w-0">
         <div class="grow relative">
             <Menu />
+            <!-- Floating tool bar, horizontally centered right below the menu bar. -->
             <div
-                class="absolute top-0 bottom-0 left-0 z-20 flex flex-col justify-center pointer-events-none"
+                class="absolute top-14 left-0 right-0 z-20 flex flex-row justify-center pointer-events-none"
             >
                 <Toolbar />
             </div>

@@ -15,14 +15,18 @@
     } from '@lucide/svelte';
     import { i18n } from '$lib/i18n.svelte';
 
+    /**
+     * Floating tool bar shown over the map: a horizontal pill of editing tools
+     * with the active tool's panel opening directly underneath it.
+     */
     let props: {
         class?: string;
     } = $props();
 </script>
 
-<div class="flex flex-row w-full items-center pr-12">
+<div class="flex flex-col items-center max-w-full px-2">
     <div
-        class="h-fit flex flex-col p-1 gap-1.5 bg-background rounded-r-md pointer-events-auto shadow-md {props.class ??
+        class="h-fit flex flex-row p-1 gap-1.5 bg-background rounded-md pointer-events-auto shadow-md {props.class ??
             ''}"
     >
         <ToolbarItem itemTool={Tool.ROUTING} label={i18n._('toolbar.routing.tooltip')}>
