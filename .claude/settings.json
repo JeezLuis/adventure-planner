@@ -9,6 +9,9 @@
       "Read(**/*.pem)",
       "Read(**/*.key)",
       "Read(**/pb_data/**)"
+    ],
+    "allow": [
+      "Bash(python3 -)"
     ]
   }
 }
