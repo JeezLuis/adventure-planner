@@ -46,5 +46,5 @@ All map/routing services are configured through environment variables (see [`web
 
 ## License
 
-MIT. Based on [gpx.studio](https://github.com/gpxstudio/gpx.studio), © gpx.studio contributors - the original license and copyright notice are preserved in [LICENSE](LICENSE).
+MIT. Based on [gpx.studio](https://github.com/gpxstudio/gpx.studio), © gpx.studio contributors - the original license and copyright notice are preserved in [LICENSE](LICENSE). 
  
