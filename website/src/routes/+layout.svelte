@@ -12,6 +12,7 @@
     import { browser } from '$app/environment';
     import { goto } from '$app/navigation';
     import { getURLForLanguage } from '$lib/utils';
+    import { APP_NAME } from '$lib/brand';
 
     let {
         children,
@@ -52,7 +53,7 @@
 
     $effect(() => {
         if (i18n.isLoading) return;
-        document.title = `gpx.studio — ${i18n._(`metadata.${page.route.id?.replace('/[[language]]', '').split('/')[1] ?? 'home'}_title`)}`;
+        document.title = `${APP_NAME} — ${i18n._(`metadata.${page.route.id?.replace('/[[language]]', '').split('/')[1] ?? 'home'}_title`)}`;
     });
 
     let showNavAndFooter = $derived(page.route.id === null || !appRoutes.includes(page.route.id));

@@ -65,10 +65,7 @@
                 {i18n._('enable_webgl2')}
             </Button>
         {:else if embeddedApp}
-            <p>The app cannot be embedded in an iframe.</p>
-            <Button href="https://gpx.studio/help/integration" target="_blank">
-                Learn how to create a map for your website
-            </Button>
+            <p>The app cannot be embedded in an iframe. Use the dedicated embed page instead.</p>
         {/if}
     </div>
 </div>

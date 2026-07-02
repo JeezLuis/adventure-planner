@@ -1,12 +1,12 @@
 {
-  "name": "gpx.studio",
-  "short_name": "gpx.studio",
+  "name": "Adventure Planner",
+  "short_name": "Adventure Planner",
   "description": "View, edit, and create GPX files online with advanced route planning capabilities and file processing tools, beautiful maps and detailed data visualizations.",
   "start_url": "/app",
   "display": "standalone",
   "lang": "en",
   "scope": "/app",
-  "id": "https://gpx.studio/app",
+  "id": "https://adventure-planner.example.com/app",
   "icons": [
     {
       "src": "pwa-icon.svg",

@@ -1,9 +1,10 @@
 import fs from 'fs';
 import { glob } from 'glob';
 import { languages } from '$lib/languages';
+import { APP_URL } from '$lib/brand';
 
 function getURLForLanguage(lang: string, path: string): string {
-    return `https://gpx.studio${lang === 'en' ? '' : `/${lang}`}${path}`;
+    return `${APP_URL}${lang === 'en' ? '' : `/${lang}`}${path}`;
 }
 
 function generateSitemap() {

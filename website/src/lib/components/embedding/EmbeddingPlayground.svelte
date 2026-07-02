@@ -28,6 +28,7 @@
     import { base } from '$app/paths';
     import { map } from '$lib/components/map/map';
     import { mode } from 'mode-watcher';
+    import { APP_URL, REPOSITORY_URL } from '$lib/brand';
 
     let options = $state(
         getMergedEmbeddingOptions(
@@ -38,9 +39,7 @@
             defaultEmbeddingOptions
         )
     );
-    let files = $state(
-        'https://raw.githubusercontent.com/gpxstudio/gpx.studio/main/gpx/test-data/simple.gpx'
-    );
+    let files = $state(`${REPOSITORY_URL.replace('github.com', 'raw.githubusercontent.com')}/main/gpx/test-data/simple.gpx`);
     let driveIds = $state('');
 
     let iframeOptions = $derived(
@@ -321,7 +320,7 @@
             <pre
                 class="bg-primary text-primary-foreground p-3 rounded-md whitespace-normal break-all">
                 <code class="language-html">
-                    {`<iframe src="https://gpx.studio${base}/embed?options=${encodeURIComponent(JSON.stringify(getCleanedEmbeddingOptions(iframeOptions)))}${hash}" width="100%" height="600px" frameborder="0" style="outline: none;"/>`}
+                    {`<iframe src="${APP_URL}${base}/embed?options=${encodeURIComponent(JSON.stringify(getCleanedEmbeddingOptions(iframeOptions)))}${hash}" width="100%" height="600px" frameborder="0" style="outline: none;"/>`}
                 </code>
             </pre>
         </fieldset>

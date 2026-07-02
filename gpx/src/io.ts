@@ -134,7 +134,8 @@ export function buildGPX(file: GPXFile, exclude: string[]): string {
     });
 
     if (!gpx.attributes) gpx.attributes = {};
-    gpx.attributes['creator'] = gpx.attributes['creator'] ?? 'https://gpx.studio';
+    // Files that already carry a creator keep it; files authored here are stamped with ours.
+    gpx.attributes['creator'] = gpx.attributes['creator'] ?? 'Adventure Planner';
     gpx.attributes['version'] = '1.1';
     gpx.attributes['xmlns'] = 'http://www.topografix.com/GPX/1/1';
     gpx.attributes['xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';

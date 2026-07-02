@@ -1,7 +1,12 @@
 import { base } from '$app/paths';
 import { languages } from '$lib/languages';
 import { getURLForLanguage } from '$lib/utils';
+import { APP_NAME, APP_URL } from '$lib/brand';
 
+/**
+ * Injects localized document metadata (title, description, OpenGraph tags,
+ * alternate-language links, PWA manifest) into every prerendered page.
+ */
 export async function handle({ event, resolve }) {
     const language = event.params.language ?? 'en';
     const strings = await import(`./locales/${language}.json`);
@@ -15,35 +20,27 @@ export async function handle({ event, resolve }) {
     const htmlTag = `<html lang="${language}" translate="no">`;
 
     let headTag = `<head>
-    <title>gpx.studio — ${title}</title>
+    <title>${APP_NAME} — ${title}</title>
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "gpx.studio",
-        "url": "https://gpx.studio"
+        "name": "${APP_NAME}",
+        "url": "${APP_URL}"
     }
     </script>
     <meta name="description" content="${description}" />
-    <meta property="og:title" content="gpx.studio — ${title}" />
+    <meta property="og:title" content="${APP_NAME} — ${title}" />
     <meta property="og:description" content="${description}" />
-    <meta name="twitter:title" content="gpx.studio — ${title}" />
-    <meta name="twitter:description" content="${description}" />
-    <meta property="og:image" content="https://gpx.studio${base}/og_logo.png" />
-    <meta property="og:url" content="https://gpx.studio/" />
+    <meta property="og:url" content="${APP_URL}/" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="gpx.studio" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://gpx.studio${base}/og_logo.png" />
-    <meta name="twitter:url" content="https://gpx.studio/" />
-    <meta name="twitter:site" content="@gpxstudio" />
-    <meta name="twitter:creator" content="@gpxstudio" />
-    <link rel="alternate" hreflang="x-default" href="https://gpx.studio${getURLForLanguage('en', path)}" />
-    <link rel="manifest" href="/${language}.manifest.webmanifest" />`;
+    <meta property="og:site_name" content="${APP_NAME}" />
+    <link rel="alternate" hreflang="x-default" href="${APP_URL}${getURLForLanguage('en', path)}" />
+    <link rel="manifest" href="${base}/${language}.manifest.webmanifest" />`;
 
     if (page !== '404') {
         for (let lang of Object.keys(languages)) {
-            headTag += `   <link rel="alternate" hreflang="${lang}" href="https://gpx.studio${getURLForLanguage(lang, path)}" />
+            headTag += `   <link rel="alternate" hreflang="${lang}" href="${APP_URL}${getURLForLanguage(lang, path)}" />
 `;
         }
     }
