@@ -512,6 +512,10 @@
         "buffer_days": "Días extra...",
         "buffer_days_title": "Días extra tras esta ruta",
         "buffer_days_help": "Días adicionales antes de empezar la siguiente ruta: un día de descanso, margen para un cruce de frontera... Las fechas de las rutas siguientes se retrasan esa cantidad de días.",
-        "buffer_days_label": "Días"
+        "buffer_days_label": "Días",
+        "alternative": "Ruta alternativa",
+        "alternative_title": "Ruta alternativa: no cuenta para la numeración",
+        "hide_alternatives": "Ocultar las rutas alternativas en el mapa",
+        "show_alternatives": "Mostrar las rutas alternativas en el mapa"
     }
 }

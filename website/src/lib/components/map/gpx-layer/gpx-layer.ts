@@ -29,7 +29,7 @@ import { splitAs } from '$lib/components/toolbar/tools/scissors/scissors';
 import { mapCursor, MapCursorState } from '$lib/logic/map-cursor';
 import { ANCHOR_LAYER_KEY } from '$lib/components/map/style';
 import { gpxColors } from '$lib/components/map/gpx-layer/gpx-layers';
-import { visibleFileIds } from '$lib/library/library';
+import { activeTrackAlternatives, visibleFileIds } from '$lib/library/library';
 
 /** Palette used to auto-assign track colors, also offered as quick-pick swatches in the style dialog. */
 export const trackColorPalette = [
@@ -120,7 +120,7 @@ export function getSvgForSymbol(symbol?: string | undefined, layerColor?: string
     </svg>`;
 }
 
-const { directionMarkers, defaultOpacity, defaultWidth } = settings;
+const { directionMarkers, defaultOpacity, defaultWidth, showAlternativesOnMap } = settings;
 
 export class GPXLayer {
     fileId: string;
@@ -180,6 +180,8 @@ export class GPXLayer {
         );
         this.unsubscribe.push(directionMarkers.subscribe(this.updateBinded));
         this.unsubscribe.push(visibleFileIds.subscribe(this.updateBinded));
+        this.unsubscribe.push(activeTrackAlternatives.subscribe(this.updateBinded));
+        this.unsubscribe.push(showAlternativesOnMap.subscribe(this.updateBinded));
     }
 
     update() {
@@ -191,8 +193,11 @@ export class GPXLayer {
         }
 
         // The map only renders the tracks of the current library selection,
-        // mirroring the track list of the library panel.
-        const visibleOnMap = get(visibleFileIds).has(this.fileId);
+        // mirroring the track list of the library panel. Alternatives can be
+        // hidden on top of that with the eye toggle; they stay listed.
+        const visibleOnMap =
+            get(visibleFileIds).has(this.fileId) &&
+            (get(showAlternativesOnMap) || !get(activeTrackAlternatives).has(this.fileId));
         try {
             for (const layerId of [
                 this.fileId,
@@ -276,6 +281,18 @@ export class GPXLayer {
             ];
 
             _map.setFilter(this.fileId, segmentFilter, { validate: false });
+
+            // Alternative tracks render dotted (the round line-cap turns
+            // near-zero dashes into dots) and faded, see getGeoJSON. Render
+            // override only, the stored style is untouched: unmarking the
+            // track (or the mark going dormant when the numbering is turned
+            // off) restores the solid line.
+            const alternative = get(activeTrackAlternatives).has(this.fileId);
+            _map.setPaintProperty(
+                this.fileId,
+                'line-dasharray',
+                alternative ? [0.1, 3] : undefined
+            );
 
             if (get(directionMarkers)) {
                 if (!_map.getLayer(this.fileId + '-direction')) {
@@ -736,6 +753,10 @@ export class GPXLayer {
 
         let data = file.toGeoJSON();
 
+        // Alternative tracks render faded on top of the dotted line style
+        // applied in update(), so they stay recognizable from a distance.
+        const alternative = get(activeTrackAlternatives).has(this.fileId);
+
         let trackIndex = 0,
             segmentIndex = 0;
         for (let feature of data.features) {
@@ -750,6 +771,11 @@ export class GPXLayer {
             }
             if (!feature.properties.width) {
                 feature.properties.width = get(defaultWidth);
+            }
+            if (alternative) {
+                // min() rather than a plain 0.5: a track styled below 0.5
+                // must not get MORE opaque by becoming an alternative.
+                feature.properties.opacity = Math.min(feature.properties.opacity, 0.5);
             }
             if (
                 get(selection).hasAnyParent(

@@ -512,6 +512,10 @@
         "buffer_days": "Buffer days...",
         "buffer_days_title": "Buffer days after this track",
         "buffer_days_help": "Extra days before starting the next track: a rest day, slack for a border crossing... The dates of the following tracks are pushed back by that many days.",
-        "buffer_days_label": "Days"
+        "buffer_days_label": "Days",
+        "alternative": "Alternative track",
+        "alternative_title": "Alternative track: does not count in the numbering",
+        "hide_alternatives": "Hide the alternative tracks on the map",
+        "show_alternatives": "Show the alternative tracks on the map"
     }
 }

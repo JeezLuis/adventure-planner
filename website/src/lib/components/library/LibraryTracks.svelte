@@ -2,6 +2,8 @@
     import { setContext } from 'svelte';
     import { ScrollArea } from '$lib/components/ui/scroll-area/index';
     import {
+        Eye,
+        EyeOff,
         MapPin,
         Mountain,
         MoveDownRight,
@@ -23,6 +25,7 @@
         librarySelection,
         visibleFileIds,
     } from '$lib/library/library';
+    import { settings } from '$lib/logic/settings';
     import type { GPXFileWithStatistics } from '$lib/logic/statistics-tree';
     import { i18n } from '$lib/i18n.svelte';
 
@@ -39,6 +42,8 @@
      */
     setContext('orientation', 'vertical');
     setContext('recursive', true);
+
+    const { showAlternativesOnMap } = settings;
 
     let title = $derived.by(() => {
         const names = $librarySelection
@@ -134,9 +139,10 @@
             $selection.size > 0 ? $selection.getSelected().map((item) => item.getFileId()) : []
         );
         const listed = [...perTrack.keys()];
-        const ids = selectedFileIds.size > 0
-            ? listed.filter((fileId) => selectedFileIds.has(fileId))
-            : listed;
+        const ids =
+            selectedFileIds.size > 0
+                ? listed.filter((fileId) => selectedFileIds.has(fileId))
+                : listed;
         const totals = { distance: 0, gain: 0, loss: 0, pois: 0, tracks: ids.length };
         for (const fileId of ids) {
             const kpis = perTrack.get(fileId);
@@ -188,6 +194,22 @@
             >
                 <Upload size="12" class="shrink-0" />
                 {i18n._('library.upload_gpx')}
+            </button>
+            <!-- Eye toggle: draw or hide the alternative tracks on the map. -->
+            <button
+                class="flex shrink-0 flex-row items-center rounded border px-1.5 py-0.5 font-normal text-muted-foreground hover:bg-accent hover:text-foreground"
+                title={i18n._(
+                    $showAlternativesOnMap
+                        ? 'library.hide_alternatives'
+                        : 'library.show_alternatives'
+                )}
+                onclick={() => showAlternativesOnMap.update((show) => !show)}
+            >
+                {#if $showAlternativesOnMap}
+                    <Eye size="12" class="shrink-0" />
+                {:else}
+                    <EyeOff size="12" class="shrink-0" />
+                {/if}
             </button>
         {/if}
     </div>

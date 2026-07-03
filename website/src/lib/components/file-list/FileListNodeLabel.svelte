@@ -16,6 +16,7 @@
         ClipboardCopy,
         ClipboardPaste,
         Maximize,
+        Route,
         Scissors,
         FileStack,
     } from '@lucide/svelte';
@@ -45,6 +46,8 @@
     import {
         adventures,
         pendingBufferEdit,
+        setTrackAlternative,
+        trackAlternatives,
         trackPlacements,
         trackTags,
     } from '$lib/library/library';
@@ -121,6 +124,16 @@
             ? $adventures.find((adventure) => adventure.id === adventureId)
             : undefined;
     });
+
+    /** Whether this track is marked as an alternative (see setTrackAlternative). */
+    let isAlternative = $derived(
+        item instanceof ListFileItem && $trackAlternatives.has(item.getFileId())
+    );
+
+    /** Alternatives exist only in adventures that number their tracks. */
+    let hasNumbering = $derived(
+        fileAdventure?.numbering === 'numbers' || fileAdventure?.numbering === 'date'
+    );
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -210,17 +223,30 @@
                 {:else if item.level === ListLevel.WAYPOINT}
                     {#if symbolKey && symbols[symbolKey].icon}
                         {@const SymbolIcon = symbols[symbolKey].icon}
-                        <SymbolIcon size="16" class="mx-1 shrink-0" color={symbols[symbolKey].color} />
+                        <SymbolIcon
+                            size="16"
+                            class="mx-1 shrink-0"
+                            color={symbols[symbolKey].color}
+                        />
                     {:else}
                         <MapPin size="16" class="mx-1 shrink-0" />
                     {/if}
                 {/if}
                 {#if trackTag}
-                    <span
-                        class="shrink-0 mr-1 rounded bg-accent px-1 text-[10px] font-semibold tabular-nums text-accent-foreground"
-                    >
-                        {trackTag.label}
-                    </span>
+                    {#if trackTag.alternative}
+                        <span
+                            class="shrink-0 mr-1 rounded bg-green-500/15 px-1 text-[10px] font-semibold text-green-600"
+                            title={i18n._('library.alternative_title')}
+                        >
+                            {trackTag.label}
+                        </span>
+                    {:else}
+                        <span
+                            class="shrink-0 mr-1 rounded bg-accent px-1 text-[10px] font-semibold tabular-nums text-accent-foreground"
+                        >
+                            {trackTag.label}
+                        </span>
+                    {/if}
                     {#if trackTag.bufferDays > 0}
                         <span
                             class="shrink-0 mr-1 rounded bg-amber-500/15 px-1 text-[10px] font-semibold tabular-nums text-amber-600"
@@ -263,7 +289,7 @@
                 {i18n._('menu.style.button')}
             </ContextMenu.Item>
         {/if}
-        {#if item instanceof ListFileItem && fileAdventure?.numbering === 'date'}
+        {#if item instanceof ListFileItem && fileAdventure?.numbering === 'date' && !isAlternative}
             <ContextMenu.Item
                 disabled={!singleSelection}
                 onclick={() => pendingBufferEdit.set(item.getFileId())}
@@ -271,6 +297,16 @@
                 <CalendarPlus size="16" />
                 {i18n._('library.buffer_days')}
             </ContextMenu.Item>
+        {/if}
+        {#if item instanceof ListFileItem && hasNumbering}
+            <ContextMenu.CheckboxItem
+                disabled={!singleSelection}
+                checked={isAlternative}
+                onCheckedChange={(checked) => setTrackAlternative(item.getFileId(), checked)}
+            >
+                <Route size="16" />
+                {i18n._('library.alternative')}
+            </ContextMenu.CheckboxItem>
         {/if}
         <ContextMenu.Item
             onclick={() => {

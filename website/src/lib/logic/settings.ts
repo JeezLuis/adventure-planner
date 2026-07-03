@@ -297,6 +297,8 @@ export const settings = {
     ),
     directionMarkers: new Setting('directionMarkers', false),
     distanceMarkers: new Setting('distanceMarkers', false),
+    /** Whether alternative tracks are drawn on the map (the eye toggle in the track pane header). */
+    showAlternativesOnMap: new Setting('showAlternativesOnMap', true),
     fileOrder: new Setting<string[]>('fileOrder', []),
     defaultOpacity: new Setting('defaultOpacity', 0.7),
     defaultWidth: new Setting('defaultWidth', browser && window.innerWidth < 600 ? 8 : 5),

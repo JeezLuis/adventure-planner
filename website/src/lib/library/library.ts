@@ -98,6 +98,13 @@ export type TrackPlacement = {
      * numbering: the dates of the following tracks shift by this amount.
      */
     bufferDays?: number;
+    /**
+     * Marks the track as an alternative (a backup variant of another track
+     * of the adventure): the numbering skips it and tags it ALT instead, and
+     * the map renders it semi-transparent. Only meaningful while the
+     * adventure numbers its tracks.
+     */
+    alternative?: boolean;
 };
 
 /**
@@ -138,6 +145,46 @@ export const trackBufferDays = liveStore<Map<string, number>>(
                 .map((p) => [p.fileId, p.bufferDays as number])
         ),
     new Map()
+);
+
+/** The tracks marked as alternatives, live from the database. */
+export const trackAlternatives = liveStore<Set<string>>(
+    async () =>
+        new Set(
+            (await db.trackPlacements.toArray())
+                .filter((p) => p.alternative === true)
+                .map((p) => p.fileId)
+        ),
+    new Set()
+);
+
+/**
+ * The alternatives whose adventure currently numbers its tracks (the same
+ * condition under which trackTags emits tags). The mark is dormant otherwise:
+ * kept in the database, but with no badge and no faded rendering, so turning
+ * the numbering back on restores it without data loss.
+ */
+export const activeTrackAlternatives: Readable<Set<string>> = derived(
+    [adventures, trackPlacements, trackAlternatives],
+    ([$adventures, $placements, $alternatives]) => {
+        const numberedAdventures = new Set(
+            $adventures
+                .filter(
+                    (adventure) =>
+                        adventure.numbering === 'numbers' ||
+                        (adventure.numbering === 'date' && adventure.startDate !== undefined)
+                )
+                .map((adventure) => adventure.id)
+        );
+        const active = new Set<string>();
+        $alternatives.forEach((fileId) => {
+            const adventureId = $placements.get(fileId);
+            if (adventureId !== undefined && numberedAdventures.has(adventureId)) {
+                active.add(fileId);
+            }
+        });
+        return active;
+    }
 );
 
 /**
@@ -315,6 +362,18 @@ export async function setTrackBufferDays(fileId: string, bufferDays: number): Pr
 }
 
 /**
+ * Marks a track as an alternative, or back as a regular track. Becoming an
+ * alternative clears the buffer days: the track no longer occupies a slot in
+ * the numbering, so a delay after it has nothing to delay.
+ */
+export async function setTrackAlternative(fileId: string, alternative: boolean): Promise<void> {
+    await db.trackPlacements.update(
+        fileId,
+        alternative ? { alternative: true, bufferDays: 0 } : { alternative: false }
+    );
+}
+
+/**
  * Moves an adventure into an expedition (or to the root when null), at the
  * given position among its new siblings (at the end when omitted).
  */
@@ -344,8 +403,7 @@ export async function moveExpedition(
         return;
     }
     const newOrder =
-        order ??
-        orderAtEnd(get(expeditions).filter((e) => e.parentId === parentId && e.id !== id));
+        order ?? orderAtEnd(get(expeditions).filter((e) => e.parentId === parentId && e.id !== id));
     await db.expeditions.update(id, { parentId, order: newOrder });
 }
 
@@ -408,7 +466,10 @@ export const pendingMetadataEdit = writable<LibrarySelectionItem | null>(null);
 export const pendingBufferEdit = writable<string | null>(null);
 
 /** The tag shown in front of a track name, and the buffer days after that track. */
-export type TrackTag = { label: string; bufferDays: number };
+export type TrackTag = { label: string; bufferDays: number; alternative?: boolean };
+
+/** The tag of a track marked as an alternative: it stands in for the number or date. */
+const ALTERNATIVE_TAG: TrackTag = { label: 'ALT', bufferDays: 0, alternative: true };
 
 /** A yyyy-mm-dd date shifted by whole days and formatted as dd/mm(/yyyy), UTC-safe. */
 function formatTripDate(startDate: string, offsetDays: number, showYear: boolean): string {
@@ -422,14 +483,19 @@ function formatTripDate(startDate: string, offsetDays: number, showYear: boolean
  * The numbering tag of every track whose adventure has one, keyed by file id.
  * Tracks follow the order of the track pane (the global manual file order);
  * in 'date' mode each track advances one day, plus the buffer days of the
- * tracks before it.
+ * tracks before it. Tracks marked as alternatives do not occupy a slot in
+ * the sequence: they are tagged ALT instead, and moving them around never
+ * changes the numbers or dates of the other tracks.
  */
 export const trackTags: Readable<Map<string, TrackTag>> = derived(
-    [adventures, trackPlacements, trackBufferDays, settings.fileOrder],
-    ([$adventures, $placements, $buffers, $fileOrder]) => {
+    [adventures, trackPlacements, trackBufferDays, trackAlternatives, settings.fileOrder],
+    ([$adventures, $placements, $buffers, $alternatives, $fileOrder]) => {
         const tags = new Map<string, TrackTag>();
         const filesByAdventure = new Map<string, string[]>();
-        const ordered = [...$fileOrder, ...[...$placements.keys()].filter((fileId) => !$fileOrder.includes(fileId))];
+        const ordered = [
+            ...$fileOrder,
+            ...[...$placements.keys()].filter((fileId) => !$fileOrder.includes(fileId)),
+        ];
         ordered.forEach((fileId) => {
             const adventureId = $placements.get(fileId);
             if (adventureId !== undefined) {
@@ -441,15 +507,25 @@ export const trackTags: Readable<Map<string, TrackTag>> = derived(
         $adventures.forEach((adventure) => {
             const files = filesByAdventure.get(adventure.id) ?? [];
             if (adventure.numbering === 'numbers') {
-                files.forEach((fileId, index) => {
+                let stage = 0;
+                files.forEach((fileId) => {
+                    if ($alternatives.has(fileId)) {
+                        tags.set(fileId, ALTERNATIVE_TAG);
+                        return;
+                    }
+                    stage += 1;
                     tags.set(fileId, {
-                        label: `${index + 1}`,
+                        label: `${stage}`,
                         bufferDays: $buffers.get(fileId) ?? 0,
                     });
                 });
             } else if (adventure.numbering === 'date' && adventure.startDate !== undefined) {
                 let dayOffset = 0;
                 files.forEach((fileId) => {
+                    if ($alternatives.has(fileId)) {
+                        tags.set(fileId, ALTERNATIVE_TAG);
+                        return;
+                    }
                     const bufferDays = $buffers.get(fileId) ?? 0;
                     tags.set(fileId, {
                         label: formatTripDate(
