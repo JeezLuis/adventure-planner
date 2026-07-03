@@ -64,6 +64,10 @@ function comparableProjection(file: GPXFile) {
  * - with_tracks_and_segments: multiple <trk>, each with multiple <trkseg>
  * - with_hr: Garmin gpxtpx:hr heart-rate extension on every point
  * - with_surface: nested gpxtpx:Extensions/surface extension on every point
+ * - with_cad / with_power_1 / with_power_2 / with_temp: cadence, power and
+ *   temperature extensions
+ * - with_style: gpx_style line color/opacity/width track styling
+ * - with_segments: a single track split across multiple segments
  */
 const fixtureNames = [
     'climb',
@@ -74,6 +78,12 @@ const fixtureNames = [
     'with_tracks_and_segments',
     'with_hr',
     'with_surface',
+    'with_cad',
+    'with_power_1',
+    'with_power_2',
+    'with_temp',
+    'with_style',
+    'with_segments',
 ];
 
 describe('parseGPX -> buildGPX -> parseGPX round trip', () => {
