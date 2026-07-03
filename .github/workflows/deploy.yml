@@ -13,9 +13,25 @@ concurrency:
 jobs:
     build_site:
         runs-on: ubuntu-latest
+        # configure-pages (with enablement) needs pages/id-token write; keep
+        # contents:read for the checkout since naming any permission drops the
+        # rest to none.
+        permissions:
+            contents: read
+            pages: write
+            id-token: write
         steps:
             - name: Checkout
               uses: actions/checkout@v5
+
+            # Establish GitHub Pages with "GitHub Actions" as the build source
+            # (idempotent if already enabled). Without this step the deploy job
+            # can fail with "Deployment failed, try again later" on a repo whose
+            # Pages source was never set to Actions.
+            - name: Setup Pages
+              uses: actions/configure-pages@v5
+              with:
+                  enablement: true
 
             - name: Install Node.js
               uses: actions/setup-node@v6
