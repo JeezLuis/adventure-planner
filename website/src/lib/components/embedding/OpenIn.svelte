@@ -6,10 +6,8 @@
 
     let {
         files,
-        ids,
     }: {
         files: string[];
-        ids: string[];
     } = $props();
 </script>
 
@@ -18,8 +16,6 @@
     class="absolute top-0 flex-wrap h-fit bg-background font-semibold rounded-md py-1 px-2 gap-1.5 xs:text-base mt-2.5 ml-2.5 mr-12"
     href="{getURLForLanguage(i18n.lang, '/app')}?{files.length > 0
         ? `files=${encodeURIComponent(JSON.stringify(files))}`
-        : ''}{files.length > 0 && ids.length > 0 ? '&' : ''}{ids.length > 0
-        ? `ids=${encodeURIComponent(JSON.stringify(ids))}`
         : ''}"
     target="_blank"
 >

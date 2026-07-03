@@ -12,7 +12,7 @@ import {
 import { fileStateCollection, GPXFileStateCollectionObserver } from '$lib/logic/file-state';
 import { settings } from '$lib/logic/settings';
 import type { GPXFile } from 'gpx';
-import { get, writable, type Readable, type Writable } from 'svelte/store';
+import { derived, get, writable, type Readable, type Writable } from 'svelte/store';
 import { SelectionTreeType } from '$lib/logic/selection-tree';
 
 export class Selection {
@@ -360,6 +360,21 @@ export class Selection {
 export const selection = new Selection();
 export const copied = selection.copied;
 export const cut = selection.cut;
+
+/**
+ * Canonical "is anything selected" signal. Edit actions and the UI that exposes
+ * them (menu, context menu, keyboard) gate on this so nothing operates on an
+ * empty/absent selection.
+ */
+export const hasSelection: Readable<boolean> = derived(selection, ($selection) => $selection.size > 0);
+
+/**
+ * True when the selection contains something the track-editing tools can act on
+ * (a file/track/segment), ignoring waypoint-only selections.
+ */
+export const hasEditableSelection: Readable<boolean> = derived(selection, ($selection) =>
+    $selection.hasAnyChildren(new ListRootItem(), true, ['waypoints'])
+);
 
 export function applyToOrderedItemsFromFile(
     selectedItems: ListItem[],

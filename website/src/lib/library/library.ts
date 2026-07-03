@@ -5,8 +5,11 @@
  * phase and will treat these tables as the working copy.
  *
  * Invariants:
- * - A track (GPX file) is placed in at most one adventure; tracks without a
- *   placement belong to the implicit "Unsorted" section of the panel.
+ * - Every track (GPX file) lives in exactly one adventure. There is no
+ *   "Unsorted" bucket: importing always targets an adventure - either as a
+ *   track inside the selected adventure, or as a whole new adventure whose
+ *   tracks are the file's sections (see the two import actions in
+ *   file-actions.ts). The pruner below keeps placements honest.
  * - An adventure belongs to at most one expedition (or lives at the root).
  * - An expedition may nest inside another expedition (or live at the root),
  *   but never inside itself or one of its descendants.
@@ -20,6 +23,14 @@ import { browser } from '$app/environment';
 import { db } from '$lib/db';
 import { selection as editorSelection } from '$lib/logic/selection';
 import { settings } from '$lib/logic/settings';
+
+/**
+ * When true (the app), the map only renders tracks that are in the current
+ * library selection. Embed mode has no library, so it turns this off to draw
+ * the files it was handed directly - otherwise `visibleFileIds` is empty and
+ * the embed map stays blank (see R5 in the tech-debt plan).
+ */
+export const libraryGatingEnabled = writable(true);
 
 /** A nestable group of adventures. `parentId` is another expedition id or null for root. */
 export type Expedition = {
@@ -555,7 +566,7 @@ export const pendingCreation = writable<{
     parentId: string | null;
 } | null>(null);
 
-/** Places tracks in an adventure (or back in "Unsorted" when adventureId is null). */
+/** Places tracks in an adventure; a null adventureId clears their placement. */
 export async function placeTracks(fileIds: string[], adventureId: string | null): Promise<void> {
     if (adventureId === null) {
         await db.trackPlacements.bulkDelete(fileIds);
@@ -566,11 +577,10 @@ export async function placeTracks(fileIds: string[], adventureId: string | null)
 
 /**
  * Placements declared for files that are about to be created, keyed by file
- * id. Actions that create files with a known destination (duplicate keeps the
- * copy in the adventure of its source) queue the placement BEFORE writing the
- * file, and the 'creating' hook below honors it instead of falling back to
- * the currently selected adventure. A null destination means "explicitly
- * Unsorted".
+ * id. Actions that create files with a known destination (import, duplicate,
+ * paste) queue the placement BEFORE writing the file, and the 'creating' hook
+ * below honors it instead of falling back to the currently selected adventure.
+ * A null destination clears any stale placement left on a recycled file id.
  */
 const queuedPlacements = new Map<string, string | null>();
 
@@ -578,22 +588,34 @@ export function queuePlacement(fileId: string, adventureId: string | null): void
     queuedPlacements.set(fileId, adventureId);
 }
 
+/**
+ * Adventures of tracks that were just deleted, keyed by file id. When an undo
+ * re-creates a file with the same id, the 'creating' hook restores it here
+ * instead of guessing the current selection (R6). Cleared when the id is handed
+ * to a genuinely new file (see {@link clearRestoredPlacement}, called from
+ * getFileIds) so a new track never inherits a deleted one's adventure.
+ */
+const restoredPlacements = new Map<string, string>();
+
+export function clearRestoredPlacement(fileId: string): void {
+    restoredPlacements.delete(fileId);
+}
+
 if (browser) {
-    // Place newly created files (new track, import, duplicate, paste): a
-    // queued placement wins; otherwise the currently selected adventure gets
-    // the file. The Dexie 'creating' hook fires for every new file key; the
-    // placement is written after the file transaction completes to avoid
-    // interfering with it.
+    // Place newly created files (new track, import, duplicate, paste, undo): a
+    // queued placement wins, then a placement restored from a just-deleted file
+    // of the same id (undo), then the currently selected adventure. The
+    // 'creating' hook fires for every new file key; the placement is written
+    // after the file transaction completes to avoid interfering with it.
     db.files.hook('creating', (primaryKey) => {
         if (typeof primaryKey !== 'string') {
             return;
         }
         const queued = queuedPlacements.get(primaryKey);
         const hasQueued = queuedPlacements.delete(primaryKey);
+        const restored = restoredPlacements.get(primaryKey);
+        const hasRestored = restoredPlacements.delete(primaryKey);
         const selected = get(selectedAdventureId);
-        if (!hasQueued && selected === null) {
-            return;
-        }
         setTimeout(() => {
             if (hasQueued) {
                 // Overwrite (or clear) unconditionally: file ids are recycled,
@@ -602,39 +624,55 @@ if (browser) {
                     queued != null
                         ? db.trackPlacements.put({ fileId: primaryKey, adventureId: queued })
                         : db.trackPlacements.delete(primaryKey);
-                Promise.resolve(write).catch(() => {
-                    // A failed placement only means the track lands in Unsorted.
-                });
-            } else {
+                Promise.resolve(write).catch(() => {});
+            } else if (hasRestored && restored != null) {
+                // Undo re-created a deleted track: restore its original adventure
+                // if it still exists, otherwise fall back to the current
+                // selection so the track never becomes unreachable (R6).
+                db.adventures
+                    .get(restored)
+                    .then((adventure) => {
+                        const target = adventure ? restored : selected;
+                        if (target != null) {
+                            return db.trackPlacements.put({
+                                fileId: primaryKey,
+                                adventureId: target,
+                            });
+                        }
+                    })
+                    .catch(() => {});
+            } else if (selected != null) {
                 db.trackPlacements
                     .get(primaryKey)
                     .then((existing) => {
-                        if (!existing && selected !== null) {
+                        if (!existing) {
                             return db.trackPlacements.put({
                                 fileId: primaryKey,
                                 adventureId: selected,
                             });
                         }
                     })
-                    .catch(() => {
-                        // A failed auto-placement only means the track lands in Unsorted.
-                    });
+                    .catch(() => {});
             }
         });
     });
 
-    // Prune placements whose file no longer exists. Runs on every change to
-    // the file id list; reads the current ids inside the transaction so a
-    // concurrent creation cannot be mistaken for an orphan.
+    // Prune placements whose file no longer exists, remembering each orphan's
+    // adventure so an undo that re-creates the file can restore it (R6). Runs on
+    // every change to the file id list; reads the current ids inside the
+    // transaction so a concurrent creation cannot be mistaken for an orphan.
     liveQuery(() => db.fileids.toArray()).subscribe({
         next: () => {
             db.transaction('rw', db.fileids, db.trackPlacements, async () => {
                 const existing = new Set(await db.fileids.toArray());
-                const orphans = (await db.trackPlacements.toArray())
-                    .filter((placement) => !existing.has(placement.fileId))
-                    .map((placement) => placement.fileId);
+                const orphans = (await db.trackPlacements.toArray()).filter(
+                    (placement) => !existing.has(placement.fileId)
+                );
                 if (orphans.length > 0) {
-                    await db.trackPlacements.bulkDelete(orphans);
+                    orphans.forEach((placement) =>
+                        restoredPlacements.set(placement.fileId, placement.adventureId)
+                    );
+                    await db.trackPlacements.bulkDelete(orphans.map((placement) => placement.fileId));
                 }
             }).catch(() => {
                 // Pruning retries on the next file-list change.

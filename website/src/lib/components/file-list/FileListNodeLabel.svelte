@@ -35,7 +35,7 @@
     import StyleDialog from '$lib/components/file-list/style/StyleDialog.svelte';
     import { editStyle } from '$lib/components/file-list/style/utils.svelte';
     import { getSymbolKey, symbols } from '$lib/assets/symbols';
-    import { selection, copied, cut } from '$lib/logic/selection';
+    import { selection, copied, cut, hasSelection } from '$lib/logic/selection';
     import { fileActions, pasteSelection } from '$lib/logic/file-actions';
     import { allHidden } from '$lib/logic/hidden';
     import { boundsManager } from '$lib/logic/bounds';
@@ -362,18 +362,18 @@
             <Shortcut key="⏎" ctrl={true} />
         </ContextMenu.Item>
         <ContextMenu.Separator />
-        <ContextMenu.Item onclick={fileActions.duplicateSelection}>
+        <ContextMenu.Item disabled={!$hasSelection} onclick={fileActions.duplicateSelection}>
             <Copy size="16" />
             {i18n._('menu.duplicate')}
             <Shortcut key="D" ctrl={true} />
         </ContextMenu.Item>
         {#if orientation === 'vertical'}
-            <ContextMenu.Item onclick={() => selection.copySelection()}>
+            <ContextMenu.Item disabled={!$hasSelection} onclick={() => selection.copySelection()}>
                 <ClipboardCopy size="16" />
                 {i18n._('menu.copy')}
                 <Shortcut key="C" ctrl={true} />
             </ContextMenu.Item>
-            <ContextMenu.Item onclick={() => selection.cutSelection()}>
+            <ContextMenu.Item disabled={!$hasSelection} onclick={() => selection.cutSelection()}>
                 <Scissors size="16" />
                 {i18n._('menu.cut')}
                 <Shortcut key="X" ctrl={true} />
@@ -390,7 +390,7 @@
             </ContextMenu.Item>
         {/if}
         <ContextMenu.Separator />
-        <ContextMenu.Item onclick={fileActions.deleteSelection}>
+        <ContextMenu.Item disabled={!$hasSelection} onclick={fileActions.deleteSelection}>
             <Trash2 size="16" />
             {i18n._('menu.delete')}
             <Shortcut key="⌫" ctrl={true} />

@@ -29,7 +29,7 @@ import { splitAs } from '$lib/components/toolbar/tools/scissors/scissors';
 import { mapCursor, MapCursorState } from '$lib/logic/map-cursor';
 import { ANCHOR_LAYER_KEY } from '$lib/components/map/style';
 import { gpxColors } from '$lib/components/map/gpx-layer/gpx-layers';
-import { activeTrackAlternatives, visibleFileIds } from '$lib/library/library';
+import { activeTrackAlternatives, libraryGatingEnabled, visibleFileIds } from '$lib/library/library';
 
 /** Palette used to auto-assign track colors, also offered as quick-pick swatches in the style dialog. */
 export const trackColorPalette = [
@@ -180,6 +180,7 @@ export class GPXLayer {
         );
         this.unsubscribe.push(directionMarkers.subscribe(this.updateBinded));
         this.unsubscribe.push(visibleFileIds.subscribe(this.updateBinded));
+        this.unsubscribe.push(libraryGatingEnabled.subscribe(this.updateBinded));
         this.unsubscribe.push(activeTrackAlternatives.subscribe(this.updateBinded));
         this.unsubscribe.push(showAlternativesOnMap.subscribe(this.updateBinded));
     }
@@ -192,11 +193,13 @@ export class GPXLayer {
             return;
         }
 
-        // The map only renders the tracks of the current library selection,
-        // mirroring the track list of the library panel. Alternatives can be
-        // hidden on top of that with the eye toggle; they stay listed.
+        // In the app, the map only renders the tracks of the current library
+        // selection, mirroring the track list of the library panel. Embed mode
+        // has no library, so it disables gating (libraryGatingEnabled=false) to
+        // show every file it was given. Alternatives can be hidden on top of
+        // that with the eye toggle; they stay listed.
         const visibleOnMap =
-            get(visibleFileIds).has(this.fileId) &&
+            (!get(libraryGatingEnabled) || get(visibleFileIds).has(this.fileId)) &&
             (get(showAlternativesOnMap) || !get(activeTrackAlternatives).has(this.fileId));
         try {
             for (const layerId of [

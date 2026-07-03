@@ -15,6 +15,7 @@ import {
     type ListItem,
 } from '$lib/components/file-list/file-list';
 import { i18n } from '$lib/i18n.svelte';
+import { toast } from 'svelte-sonner';
 import { freeze, type WritableDraft } from 'immer';
 import {
     GPXFile,
@@ -35,10 +36,13 @@ import { boundsManager } from './bounds';
 import {
     adventures,
     adventureIdsOfSelection,
+    clearRestoredPlacement,
+    createAdventure,
     deleteAdventure,
     deleteExpeditionCascade,
     expeditions,
     queuePlacement,
+    selectLibraryItem,
     trackPlacements,
     type LibrarySelectionItem,
 } from '$lib/library/library';
@@ -78,6 +82,10 @@ export function getFileIds(n: number) {
             ids.push(id);
         }
     }
+    // These ids belong to genuinely new files, so drop any restore-stash left
+    // by a deleted track that once used the same id (R6): a new track must land
+    // in the selected adventure, not inherit the deleted one's.
+    ids.forEach(clearRestoredPlacement);
     return ids;
 }
 
@@ -109,7 +117,12 @@ export function createFile() {
     currentTool.set(Tool.ROUTING);
 }
 
-export function triggerFileInput() {
+/**
+ * Opens the GPX file picker and hands the chosen files to `onFiles`. Defaults
+ * to "import track" ({@link loadFiles}); "import adventure" passes its own
+ * handler (see {@link importAdventures}).
+ */
+export function triggerFileInput(onFiles: (files: FileList) => void = loadFiles) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.gpx';
@@ -117,13 +130,13 @@ export function triggerFileInput() {
     input.className = 'hidden';
     input.onchange = () => {
         if (input.files) {
-            loadFiles(input.files);
+            onFiles(input.files);
         }
     };
     input.click();
 }
 
-export async function loadFiles(list: FileList | File[]) {
+async function loadAll(list: FileList | File[]): Promise<GPXFile[]> {
     let files: GPXFile[] = [];
     for (let i = 0; i < list.length; i++) {
         let file = await loadFile(list[i]);
@@ -131,18 +144,126 @@ export async function loadFiles(list: FileList | File[]) {
             files.push(file);
         }
     }
+    return files;
+}
 
+/**
+ * Imports GPX files as tracks in the currently selected adventure ("import
+ * track"): each file becomes one track, placed by the library's 'creating'
+ * hook. Callers guard this on a selected adventure (see LibraryActions /
+ * LibraryTracks), so no track is left unplaced.
+ */
+export async function loadFiles(list: FileList | File[]) {
+    let files = await loadAll(list);
+    if (files.length === 0) {
+        return;
+    }
     let ids = fileActions.addMultiple(files);
     selection.selectFileWhenLoaded(ids[0]);
     boundsManager.fitBoundsOnLoad(ids);
 }
 
+/**
+ * Splits a loaded GPX file into one GPXFile per "section" - per track when it
+ * has several, otherwise per segment of its single track - so "import
+ * adventure" can turn each section into its own track. Waypoints stay on the
+ * first section; ids are assigned by the caller.
+ */
+function buildSections(file: GPXFile): GPXFile[] {
+    const sections: GPXFile[] = [];
+    const clearWaypointsIfNotFirst = (newFile: GPXFile) => {
+        if (sections.length > 0 && newFile.wpt.length > 0) {
+            newFile.replaceWaypoints(0, newFile.wpt.length - 1, []);
+        }
+    };
+    if (file.trk.length > 1) {
+        file.trk.forEach((track, index) => {
+            const newFile = file.clone();
+            newFile.replaceTracks(0, file.trk.length - 1, [track.clone()]);
+            newFile.metadata = {
+                ...newFile.metadata,
+                name: track.name ?? `${file.metadata.name ?? ''} (${index + 1})`,
+            };
+            clearWaypointsIfNotFirst(newFile);
+            sections.push(newFile);
+        });
+    } else if (file.trk.length === 1 && file.trk[0].trkseg.length > 1) {
+        const track = file.trk[0];
+        track.trkseg.forEach((segment, index) => {
+            const newFile = file.clone();
+            const newTrack = track.clone();
+            newTrack.replaceTrackSegments(0, track.trkseg.length - 1, [segment]);
+            newFile.replaceTracks(0, 0, [newTrack]);
+            newFile.metadata = {
+                ...newFile.metadata,
+                name: `${track.name ?? file.metadata.name ?? ''} (${index + 1})`,
+            };
+            clearWaypointsIfNotFirst(newFile);
+            sections.push(newFile);
+        });
+    } else {
+        sections.push(file);
+    }
+    return sections;
+}
+
+/**
+ * Imports each GPX file as a new adventure inside the given expedition (null =
+ * root): the file name becomes the adventure name and each of its sections
+ * becomes a track. This is the "import adventure" action and the destination
+ * for share/URL imports, keeping the "every track lives in an adventure"
+ * invariant even when no adventure is selected.
+ */
+export async function importAdventures(
+    list: FileList | File[],
+    expeditionId: string | null
+): Promise<void> {
+    const files = await loadAll(list);
+    if (files.length === 0) {
+        return;
+    }
+    const perFile: { file: GPXFile; adventureId: string }[] = [];
+    for (const file of files) {
+        const name =
+            file.metadata.name?.trim() || i18n._('library.imported_adventure', 'Imported adventure');
+        const adventureId = await createAdventure(expeditionId, name);
+        perFile.push({ file, adventureId });
+    }
+    const createdIds: string[] = [];
+    await fileActionManager.applyGlobal((draft) => {
+        const built = perFile.flatMap(({ file, adventureId }) =>
+            buildSections(file).map((section) => ({ section, adventureId }))
+        );
+        const ids = getFileIds(built.length);
+        built.forEach(({ section, adventureId }, index) => {
+            section._data.id = ids[index];
+            queuePlacement(section._data.id, adventureId);
+            draft.set(section._data.id, freeze(section));
+            createdIds.push(section._data.id);
+        });
+    });
+    if (createdIds.length > 0) {
+        // Select the first new adventure so the library shows it and its tracks
+        // render on the map (visibleFileIds follows the library selection).
+        selectLibraryItem({ kind: 'adventure', id: perFile[0].adventureId }, false);
+        boundsManager.fitBoundsOnLoad(createdIds);
+    }
+}
+
 export async function loadFile(file: File): Promise<GPXFile | null> {
+    const notifyImportError = () =>
+        toast.error(
+            `${i18n._('library.import_error', 'Could not import this file - it may be corrupt or not a valid GPX file')}: ${file.name}`
+        );
     let result = await new Promise<GPXFile | null>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => {
             let data = reader.result?.toString() ?? null;
-            if (data) {
+            if (!data) {
+                resolve(null);
+                return;
+            }
+            try {
                 let gpx = parseGPX(data);
                 if (gpx.metadata === undefined) {
                     gpx.metadata = {};
@@ -151,9 +272,16 @@ export async function loadFile(file: File): Promise<GPXFile | null> {
                     gpx.metadata.name = file.name.split('.').slice(0, -1).join('.');
                 }
                 resolve(gpx);
-            } else {
+            } catch (e) {
+                // Corrupt / non-GPX input (GPXParseError) or any unexpected parse
+                // failure: reject this one file instead of hanging the batch.
+                notifyImportError();
                 resolve(null);
             }
+        };
+        reader.onerror = () => {
+            notifyImportError();
+            resolve(null);
         };
         reader.readAsText(file);
     });
@@ -321,6 +449,9 @@ export const fileActions = {
         });
     },
     mergeSelection: (mergeTraces: boolean, removeGaps: boolean) => {
+        if (get(selection).size === 0) {
+            return;
+        }
         fileActionManager.applyGlobal((draft) => {
             let first = true;
             let target: ListItem = new ListRootItem();
@@ -502,6 +633,9 @@ export const fileActions = {
         });
     },
     extractSelection: () => {
+        if (get(selection).size === 0) {
+            return;
+        }
         return fileActionManager.applyGlobal((draft) => {
             selection.applyToOrderedSelectedItemsFromFile((fileId, level, items) => {
                 if (level === ListLevel.FILE) {

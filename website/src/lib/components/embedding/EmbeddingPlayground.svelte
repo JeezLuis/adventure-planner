@@ -40,7 +40,6 @@
         )
     );
     let files = $state(`${REPOSITORY_URL.replace('github.com', 'raw.githubusercontent.com')}/main/gpx/test-data/simple.gpx`);
-    let driveIds = $state('');
 
     let iframeOptions = $derived(
         getMergedEmbeddingOptions(
@@ -50,7 +49,6 @@
                         ? PUBLIC_MAPTILER_KEY
                         : options.key,
                 files: files.split(',').filter((url) => url.length > 0),
-                ids: driveIds.split(',').filter((id) => id.length > 0),
                 elevation: {
                     fill: options.elevation.fill === 'none' ? undefined : options.elevation.fill,
                 },
@@ -105,8 +103,6 @@
             <Input id="key" type="text" class="h-8" bind:value={options.key} />
             <Label for="file_urls">{i18n._('embedding.file_urls')}</Label>
             <Input id="file_urls" type="text" class="h-8" bind:value={files} />
-            <Label for="drive_ids">{i18n._('embedding.drive_ids')}</Label>
-            <Input id="drive_ids" type="text" class="h-8" bind:value={driveIds} />
             <Label for="basemap">{i18n._('embedding.basemap')}</Label>
             <Select.Root type="single" bind:value={options.basemap}>
                 <Select.Trigger id="basemap" class="w-full h-8">

@@ -19,6 +19,7 @@
     import { gpxStatistics, hoveredPoint, slicedGPXStatistics } from '$lib/logic/statistics';
     import { loadFile } from '$lib/logic/file-actions';
     import { selection } from '$lib/logic/selection';
+    import { libraryGatingEnabled } from '$lib/library/library';
     import { untrack } from 'svelte';
     import { isSelected, toggle } from '$lib/components/map/layer-control/utils';
 
@@ -43,6 +44,10 @@
     } = settings;
 
     settings.initialize();
+
+    // Embed has no library panel, so disable the map's library-visibility gating;
+    // otherwise no track would render (see R5 in the tech-debt plan).
+    libraryGatingEnabled.set(false);
 
     function applyOptions() {
         if (allowedEmbeddingBasemaps.includes(options.basemap)) {
@@ -108,7 +113,7 @@
             geolocate={true}
             hash={useHash}
         />
-        <OpenIn files={options.files} ids={options.ids} />
+        <OpenIn files={options.files} />
         <LayerControl />
         <GPXLayers />
         {#if $fileStateCollection.size > 1}

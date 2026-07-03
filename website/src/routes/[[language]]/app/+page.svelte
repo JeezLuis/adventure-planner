@@ -16,11 +16,10 @@
     import { Toaster } from '$lib/components/ui/sonner';
     import { i18n } from '$lib/i18n.svelte';
     import { settings } from '$lib/logic/settings';
-    import { loadFiles } from '$lib/logic/file-actions';
+    import { importAdventures } from '$lib/logic/file-actions';
     import { onDestroy, onMount } from 'svelte';
     import { page } from '$app/state';
     import { gpxStatistics, hoveredPoint, slicedGPXStatistics } from '$lib/logic/statistics';
-    import { getURLForGoogleDriveFile } from '$lib/components/embedding/embedding';
     import { db } from '$lib/db';
     import { fileStateCollection } from '$lib/logic/file-state';
     import { selectedAdventureId } from '$lib/library/library';
@@ -51,9 +50,7 @@
     onMount(async () => {
         settings.connectToDatabase(db);
         fileStateCollection.connectToDatabase(db).then(() => {
-            let files: string[] = JSON.parse(page.url.searchParams.get('files') || '[]');
-            let ids: string[] = JSON.parse(page.url.searchParams.get('ids') || '[]');
-            let urls: string[] = files.concat(ids.map(getURLForGoogleDriveFile));
+            let urls: string[] = JSON.parse(page.url.searchParams.get('files') || '[]');
 
             if (urls.length > 0) {
                 let downloads: Promise<File | null>[] = [];
@@ -66,7 +63,13 @@
                 });
 
                 Promise.all(downloads).then((files) => {
-                    loadFiles(files.filter((file) => file !== null));
+                    // Share/URL imports have no selected adventure, so import
+                    // each as its own root-level adventure to keep every track
+                    // reachable (no Unsorted limbo).
+                    importAdventures(
+                        files.filter((file): file is File => file !== null),
+                        null
+                    );
                 });
             }
         });

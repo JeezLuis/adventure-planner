@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { Mountain, Tent, Route } from '@lucide/svelte';
+    import { Mountain, Tent, Route, Upload, Import } from '@lucide/svelte';
     import ButtonWithTooltip from '$lib/components/ButtonWithTooltip.svelte';
-    import { createFile } from '$lib/logic/file-actions';
+    import { createFile, triggerFileInput, importAdventures } from '$lib/logic/file-actions';
     import {
         adventures,
         expeditions,
@@ -84,6 +84,43 @@
         >
             <Route size="15" />
             {i18n._('library.new_track')}
+        </ButtonWithTooltip>
+    </div>
+    <span
+        class="px-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground select-none"
+    >
+        {i18n._('library.import_label')}
+    </span>
+    <div class="w-full flex flex-row items-center gap-1 p-1 pt-0.5">
+        <ButtonWithTooltip
+            variant="ghost"
+            size="sm"
+            class="grow gap-1 h-7 px-1.5 text-xs"
+            label={i18n._(
+                canCreateTrack
+                    ? 'library.import_track_tooltip'
+                    : 'library.import_track_disabled_tooltip'
+            )}
+            disabled={!canCreateTrack}
+            onclick={() => triggerFileInput()}
+        >
+            <Upload size="15" />
+            {i18n._('library.import_track')}
+        </ButtonWithTooltip>
+        <ButtonWithTooltip
+            variant="ghost"
+            size="sm"
+            class="grow gap-1 h-7 px-1.5 text-xs"
+            label={i18n._(
+                canCreateAdventure
+                    ? 'library.import_adventure_tooltip'
+                    : 'library.import_adventure_disabled_tooltip'
+            )}
+            disabled={!canCreateAdventure}
+            onclick={() => triggerFileInput((files) => importAdventures(files, targetExpeditionId))}
+        >
+            <Import size="15" />
+            {i18n._('library.import_adventure')}
         </ButtonWithTooltip>
     </div>
 </div>

@@ -4,7 +4,6 @@ import { basemaps } from '$lib/assets/layers';
 export type EmbeddingOptions = {
     key: string;
     files: string[];
-    ids: string[];
     basemap: string;
     elevation: {
         show: boolean;
@@ -28,7 +27,6 @@ export type EmbeddingOptions = {
 export const defaultEmbeddingOptions = {
     key: '',
     files: [],
-    ids: [],
     basemap: 'libertyTopo',
     elevation: {
         show: true,
@@ -101,24 +99,16 @@ export const allowedEmbeddingBasemaps = Object.keys(basemaps).filter(
 );
 
 export function getFilesFromEmbeddingOptions(options: EmbeddingOptions): string[] {
-    return options.files.concat(options.ids.map((id) => getURLForGoogleDriveFile(id)));
-}
-
-export function getURLForGoogleDriveFile(fileId: string): string {
-    return `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=AIzaSyA2ZadQob_hXiT2VaYIkAyafPvz_4ZMssk`;
+    return options.files;
 }
 
 export function convertOldEmbeddingOptions(options: URLSearchParams): any {
     let newOptions: any = {
         key: PUBLIC_MAPTILER_KEY,
         files: [],
-        ids: [],
     };
     if (options.has('state')) {
         let state = JSON.parse(options.get('state')!);
-        if (state.ids) {
-            newOptions.ids.push(...state.ids);
-        }
         if (state.urls) {
             newOptions.files.push(...state.urls);
         }

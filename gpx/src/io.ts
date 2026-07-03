@@ -1,6 +1,19 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
-import { GPXFileType } from './types';
+import { Coordinates, GPXFileType } from './types';
 import { GPXFile } from './gpx';
+
+/**
+ * Thrown by {@link parseGPX} when the input is not usable GPX: unparseable XML,
+ * a missing `<gpx>` root, or no tracks/routes/waypoints with valid coordinates.
+ * Callers should catch this and reject the file rather than importing an empty
+ * or coordinate-less document.
+ */
+export class GPXParseError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'GPXParseError';
+    }
+}
 
 const attributesWithNamespace = {
     RoutePointExtension: 'gpxx:RoutePointExtension',
@@ -37,6 +50,82 @@ function safeParseFloat(value: string): number {
     return 0.0;
 }
 
+/**
+ * Parses a latitude/longitude attribute. Unlike {@link safeParseFloat}, an
+ * unparseable coordinate yields NaN rather than 0.0 so the point can be dropped
+ * by {@link sanitizeParsedGPX} instead of being silently relocated to (0, 0).
+ */
+function parseCoordinate(value: string): number {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function hasFiniteCoordinates(point: { attributes?: Coordinates }): boolean {
+    return (
+        point.attributes != null &&
+        Number.isFinite(point.attributes.lat) &&
+        Number.isFinite(point.attributes.lon)
+    );
+}
+
+function stripInvalidTime(node: { time?: Date }): void {
+    if (node.time instanceof Date && isNaN(node.time.getTime())) {
+        node.time = undefined;
+    }
+}
+
+/**
+ * Drops points without finite coordinates and normalizes unparseable `<time>`
+ * values to undefined, so malformed input cannot poison statistics or
+ * persistence downstream (a missing lat/lon would otherwise crash
+ * `_computeStatistics` on every reload).
+ */
+function sanitizeParsedGPX(parsed: GPXFileType): void {
+    if (Array.isArray(parsed.wpt)) {
+        parsed.wpt = parsed.wpt.filter(hasFiniteCoordinates);
+        parsed.wpt.forEach(stripInvalidTime);
+    }
+    if (Array.isArray(parsed.trk)) {
+        parsed.trk.forEach((trk) => {
+            if (Array.isArray(trk.trkseg)) {
+                trk.trkseg.forEach((seg) => {
+                    if (Array.isArray(seg.trkpt)) {
+                        seg.trkpt = seg.trkpt.filter(hasFiniteCoordinates);
+                        seg.trkpt.forEach(stripInvalidTime);
+                    }
+                });
+            }
+        });
+    }
+    if (Array.isArray(parsed.rte)) {
+        parsed.rte.forEach((rte) => {
+            if (Array.isArray(rte.rtept)) {
+                rte.rtept = rte.rtept.filter(hasFiniteCoordinates);
+                rte.rtept.forEach(stripInvalidTime);
+            }
+        });
+    }
+    if (parsed.metadata && typeof parsed.metadata === 'object') {
+        stripInvalidTime(parsed.metadata);
+    }
+}
+
+/** True when the parsed file has at least one track point, route point, or waypoint. */
+function hasRoutableContent(parsed: GPXFileType): boolean {
+    const hasTrackPoints =
+        Array.isArray(parsed.trk) &&
+        parsed.trk.some(
+            (trk) =>
+                Array.isArray(trk.trkseg) &&
+                trk.trkseg.some((seg) => Array.isArray(seg.trkpt) && seg.trkpt.length > 0)
+        );
+    const hasRoutePoints =
+        Array.isArray(parsed.rte) &&
+        parsed.rte.some((rte) => Array.isArray(rte.rtept) && rte.rtept.length > 0);
+    const hasWaypoints = Array.isArray(parsed.wpt) && parsed.wpt.length > 0;
+    return hasTrackPoints || hasRoutePoints || hasWaypoints;
+}
+
 export function parseGPX(gpxData: string): GPXFile {
     const parser = new XMLParser({
         ignoreAttributes: false,
@@ -56,7 +145,7 @@ export function parseGPX(gpxData: string): GPXFile {
         },
         attributeValueProcessor(attrName, attrValue, jPath) {
             if (attrName === 'lat' || attrName === 'lon') {
-                return safeParseFloat(attrValue);
+                return parseCoordinate(attrValue);
             }
             return attrValue;
         },
@@ -101,11 +190,30 @@ export function parseGPX(gpxData: string): GPXFile {
         },
     });
 
-    const parsed: GPXFileType = parser.parse(gpxData).gpx;
+    let parsed: GPXFileType;
+    try {
+        parsed = parser.parse(gpxData).gpx;
+    } catch (e) {
+        throw new GPXParseError(
+            `Could not parse GPX file: ${e instanceof Error ? e.message : String(e)}`
+        );
+    }
+
+    if (parsed === undefined || parsed === null || typeof parsed !== 'object') {
+        throw new GPXParseError('File does not contain a GPX root element.');
+    }
 
     // @ts-ignore
     if (parsed.metadata === '') {
         parsed.metadata = {};
+    }
+
+    sanitizeParsedGPX(parsed);
+
+    if (!hasRoutableContent(parsed)) {
+        throw new GPXParseError(
+            'GPX file contains no tracks, routes, or waypoints with valid coordinates.'
+        );
     }
 
     return new GPXFile(parsed);

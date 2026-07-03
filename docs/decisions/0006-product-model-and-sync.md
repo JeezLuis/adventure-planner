@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted (2026-07). To be implemented in Phase 2.
+Accepted (2026-07). To be implemented in Phase 2. Amended 2026-07 to drop the
+"Unsorted" adventure in favour of a strict invariant enforced by two explicit
+import actions (see the Track bullet and Import subsection below).
 
 ## Context
 
@@ -19,9 +21,20 @@ see ARCHITECTURE.md) offers a natural attachment point for synchronisation.
   adventures inside).
 - **Adventure** - a set of tracks; adventures do **not** nest. May live inside an
   expedition or at root.
-- **Track** - one GPX file; every track lives in **exactly one** adventure. New or
-  imported tracks land in the currently selected adventure, else in an auto-created
-  per-user "Unsorted" adventure.
+- **Track** - one GPX file; every track lives in **exactly one** adventure. There is **no
+  "Unsorted" bucket**: a track can only come into existence already placed in an adventure.
+
+**Import (two explicit actions)**: to uphold the invariant, importing is never ambiguous:
+
+- **Import track** - adds each GPX file as a single track in the currently selected
+  adventure (guarded on an adventure being selected).
+- **Import adventure** - adds a GPX file as a whole new adventure inside the selected
+  expedition: the file name becomes the adventure name and each of the file's sections
+  (tracks, or the segments of a single track) becomes a track.
+
+Share/URL imports (`?files=`) have no selection, so they use "import adventure" at the
+root. New (blank) tracks likewise require a selected adventure. Undo of a track deletion
+restores the track to its original adventure, not the current selection.
 
 **Selection drives the map**: whatever is selected in the left tree is what renders and is
 editable - a track, an adventure (all its tracks), an expedition (everything beneath it,
