@@ -1,10 +1,10 @@
 import fs from 'fs';
 import { glob } from 'glob';
-import { languages } from '$lib/languages';
+import { languages, DEFAULT_LANGUAGE } from '$lib/languages';
 import { APP_URL } from '$lib/brand';
 
 function getURLForLanguage(lang: string, path: string): string {
-    return `${APP_URL}${lang === 'en' ? '' : `/${lang}`}${path}`;
+    return `${APP_URL}${lang === DEFAULT_LANGUAGE ? '' : `/${lang}`}${path}`;
 }
 
 function generateSitemap() {

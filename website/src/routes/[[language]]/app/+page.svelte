@@ -81,41 +81,6 @@
     });
 </script>
 
-<div class="fixed mt-[100%] -z-10 text-transparent">
-    <h1>{i18n._('metadata.home_title')} - {i18n._('metadata.app_title')}</h1>
-    <p>{i18n._('metadata.description')}</p>
-    <h2>{i18n._('toolbar.routing.tooltip')}</h2>
-    <p>{i18n._('toolbar.routing.help_no_file')}</p>
-    <p>{i18n._('toolbar.routing.help')}</p>
-    <h3>{i18n._('toolbar.routing.route_back_to_start.button')}</h3>
-    <p>{i18n._('toolbar.routing.route_back_to_start.tooltip')}</p>
-    <h3>{i18n._('toolbar.routing.round_trip.button')}</h3>
-    <p>{i18n._('toolbar.routing.round_trip.tooltip')}</p>
-    <h3>{i18n._('toolbar.routing.start_loop_here')}</h3>
-    <h2>{i18n._('toolbar.scissors.tooltip')}</h2>
-    <p>{i18n._('toolbar.scissors.help')}</p>
-    <h2>{i18n._('toolbar.time.tooltip')}</h2>
-    <p>{i18n._('toolbar.time.help')}</p>
-    <h2>{i18n._('toolbar.join.tooltip')}</h2>
-    <p>{i18n._('toolbar.join.help')}</p>
-    <h2>{i18n._('toolbar.reverse.tooltip')}</h2>
-    <h2>{i18n._('toolbar.merge.tooltip')}</h2>
-    <p>{i18n._('toolbar.merge.help_merge_contents')}</p>
-    <h2>{i18n._('toolbar.elevation.button')}</h2>
-    <p>{i18n._('toolbar.elevation.help')}</p>
-    <h2>{i18n._('toolbar.waypoint.tooltip')}</h2>
-    <p>{i18n._('toolbar.waypoint.help')}</p>
-    <h2>{i18n._('toolbar.reduce.tooltip')}</h2>
-    <p>{i18n._('toolbar.reduce.help')}</p>
-    <h2>{i18n._('toolbar.clean.tooltip')}</h2>
-    <p>{i18n._('toolbar.clean.help')}</p>
-    <h2>
-        {i18n._('gpx.files')}, {i18n._('gpx.tracks')}, {i18n._('gpx.segments')}, {i18n._(
-            'gpx.waypoints'
-        )}
-    </h2>
-</div>
-
 <div class="fixed flex flex-row w-dvw h-dvh">
     <!-- Permanent library panel: menu bar, creation actions, and two stacked
          panes with a draggable divider: the organisation tree (expeditions

@@ -5,11 +5,15 @@
  */
 import { redirect } from '@sveltejs/kit';
 import { base } from '$app/paths';
-import { languages } from '$lib/languages';
+import { languages, DEFAULT_LANGUAGE } from '$lib/languages';
 import type { EntryGenerator, PageLoad } from './$types';
 
 export const entries: EntryGenerator = () => {
-    return Object.keys(languages).map((lang) => ({ language: lang == 'en' ? '' : lang }));
+    // The default language is served unprefixed; every other language keeps its
+    // prefix so its route prerenders (keying off 'en' would 404 the default).
+    return Object.keys(languages).map((lang) => ({
+        language: lang === DEFAULT_LANGUAGE ? '' : lang,
+    }));
 };
 
 export const load: PageLoad = ({ params }) => {

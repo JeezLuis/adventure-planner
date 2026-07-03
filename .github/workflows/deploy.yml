@@ -20,20 +20,27 @@ jobs:
             - name: Install Node.js
               uses: actions/setup-node@v6
               with:
-                  node-version: 24
+                  # Match the CI workflow so deploys build what CI tested.
+                  node-version: 22
                   cache: npm
                   cache-dependency-path: |
                       gpx/package-lock.json
                       website/package-lock.json
 
+            # Use npm ci (lockfile-exact, reproducible) rather than npm install,
+            # and run the gpx tests before building so a broken engine never
+            # reaches production.
             - name: Install dependencies for gpx
-              run: npm install --prefix gpx
+              run: npm ci --prefix gpx
 
             - name: Build gpx
               run: npm run build --prefix gpx
 
+            - name: Test gpx
+              run: npm test --prefix gpx
+
             - name: Install dependencies for website
-              run: npm install --prefix website
+              run: npm ci --prefix website
 
             - name: Build website
               env:

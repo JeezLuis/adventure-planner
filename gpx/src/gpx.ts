@@ -133,10 +133,10 @@ export class GPXFile extends GPXTreeNode<Track> {
             this.attributes = gpx.attributes;
             this.metadata = gpx.metadata ?? {};
             this.metadata.author = {
-                name: 'gpx.studio',
+                name: 'Adventure Planner',
                 link: {
                     attributes: {
-                        href: 'https://gpx.studio',
+                        href: 'https://github.com/JeezLuis/adventure-planner',
                     },
                 },
             };

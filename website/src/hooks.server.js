@@ -35,7 +35,7 @@ export async function handle({ event, resolve }) {
     <meta property="og:url" content="${APP_URL}/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${APP_NAME}" />
-    <link rel="alternate" hreflang="x-default" href="${APP_URL}${getURLForLanguage('en', path)}" />
+    <link rel="alternate" hreflang="x-default" href="${APP_URL}${getURLForLanguage(DEFAULT_LANGUAGE, path)}" />
     <link rel="manifest" href="${base}/${language}.manifest.webmanifest" />`;
 
     if (page !== '404') {

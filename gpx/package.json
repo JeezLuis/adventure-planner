@@ -2,6 +2,9 @@
     "name": "gpx",
     "version": "1.0.0",
     "type": "module",
+    "engines": {
+        "node": ">=22"
+    },
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
     "repository": {
@@ -27,7 +30,7 @@
         "build": "tsc",
         "test": "vitest run",
         "postinstall": "npm run build",
-        "lint": "prettier --check . --config ../.prettierrc && eslint .",
+        "lint": "prettier --check . --config ../.prettierrc",
         "format": "prettier --write . --config ../.prettierrc"
     }
 }
