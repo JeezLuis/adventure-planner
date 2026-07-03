@@ -5,7 +5,7 @@
 
 **Adventure Planner** is a web app for planning outdoor adventures: create, edit, and organize GPX tracks on topographic and satellite maps, with routing that follows roads and trails.
 
-It is a hard fork of [gpx.studio](https://github.com/gpxstudio/gpx.studio) (MIT license - see [LICENSE](LICENSE) and [ATTRIBUTIONS.md](ATTRIBUTIONS.md)), forked at commit `fde6bafc1052edf94854e942cb7b2b073aedbd8b`, extended with a cloud library (Expeditions ▸ Adventures ▸ Tracks), Google sign-in, and automatic sync.
+It is a hard fork of [gpx.studio](https://github.com/gpxstudio/gpx.studio) (MIT license - see [LICENSE](LICENSE) and [ATTRIBUTIONS.md](ATTRIBUTIONS.md)), forked at commit `fde6bafc1052edf94854e942cb7b2b073aedbd8b`, extended with a trip library (Expeditions ▸ Adventures ▸ Tracks) and planning metadata: stage numbers or trip dates with buffer days, and alternative routes that render dotted and faded on the map with an eye toggle to hide them. Google sign-in and automatic cloud sync are next on the roadmap (see [ARCHITECTURE.md](ARCHITECTURE.md)).
 
 ## Repository structure
 

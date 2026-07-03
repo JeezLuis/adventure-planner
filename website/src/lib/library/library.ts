@@ -101,8 +101,9 @@ export type TrackPlacement = {
     /**
      * Marks the track as an alternative (a backup variant of another track
      * of the adventure): the numbering skips it and tags it ALT instead, and
-     * the map renders it semi-transparent. Only meaningful while the
-     * adventure numbers its tracks.
+     * the map renders it dotted and faded (or hides it, see the
+     * showAlternativesOnMap setting). Only meaningful while the adventure
+     * numbers its tracks.
      */
     alternative?: boolean;
 };
@@ -161,8 +162,8 @@ export const trackAlternatives = liveStore<Set<string>>(
 /**
  * The alternatives whose adventure currently numbers its tracks (the same
  * condition under which trackTags emits tags). The mark is dormant otherwise:
- * kept in the database, but with no badge and no faded rendering, so turning
- * the numbering back on restores it without data loss.
+ * kept in the database, but with no badge and no special rendering, so
+ * turning the numbering back on restores it without data loss.
  */
 export const activeTrackAlternatives: Readable<Set<string>> = derived(
     [adventures, trackPlacements, trackAlternatives],

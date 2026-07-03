@@ -6,9 +6,9 @@ of [gpx.studio](https://github.com/gpxstudio/gpx.studio) (MIT), forked at commit
 `fde6bafc1052edf94854e942cb7b2b073aedbd8b`. There are no upstream merges; useful upstream
 fixes are cherry-picked manually (see [ADR 0001](docs/decisions/0001-hard-fork-of-gpx-studio.md)).
 
-This document describes the system as implemented today (Phase 0) and points to where the
-planned cloud backend will attach. Decisions and their trade-offs live in
-[`docs/decisions/`](docs/decisions/).
+This document describes the system as implemented today (Phase 0 plus the local half of
+the Phase 2 library) and points to where the planned cloud backend will attach. Decisions
+and their trade-offs live in [`docs/decisions/`](docs/decisions/).
 
 ## System overview
 
@@ -55,7 +55,8 @@ website/              SvelteKit 2 + Svelte 5 app (adapter-static, no server code
   src/lib/brand.ts    Product identity (name, URLs, upstream attribution).
   src/lib/db.ts       Dexie (IndexedDB) schema.
   src/lib/logic/      State management: file actions, undo/redo, selection, settings.
-  src/lib/components/ UI: map, toolbar tools, file list, layer control, …
+  src/lib/library/    The library: expeditions, adventures, track placements, planning metadata.
+  src/lib/components/ UI: map, toolbar tools, file list, library panel, layer control, …
   src/lib/assets/layers.ts  Basemap/overlay/terrain catalogue.
   src/locales/        Shipped translations (English and Spanish only).
   src/routes/         Pages: `/` (redirect to app), `/app`, `/embed`, `/404`.
@@ -93,6 +94,93 @@ pollute undo history) or re-marking the file dirty (which would echo the change 
 
 Undo/redo state is deliberately separate (the `patches` table plus a `patchIndex` entry in
 `settings`) and will remain local-only when sync arrives.
+
+## The library (Expedition ▸ Adventure ▸ Track)
+
+The left panel implements the product model of
+[ADR 0006](docs/decisions/0006-product-model-and-sync.md) locally
+(`website/src/lib/library/library.ts`, UI in `website/src/lib/components/library/`),
+stored in the Dexie v2 tables `expeditions`, `adventures`, and `trackPlacements`:
+
+- **Expedition** - a named set of adventures; may nest under another expedition
+  (`parentId`).
+- **Adventure** - a named set of tracks, inside an expedition or at root
+  (`expeditionId`).
+- **Track** - one GPX file. Every track lives in exactly one adventure via its
+  `TrackPlacement` row; new and imported tracks land in the selected adventure.
+
+**Selection drives the map**: `visibleFileIds` derives from the tree selection
+(`librarySelection`), the per-file map layers show and hide accordingly, and the track
+pane lists the same set - the pane reads as the legend of the map.
+
+Adventures carry **planning metadata**, edited in the adventure dialog and stored on the
+`Adventure` row: `numbering` tags every track in the pane with its stage number
+(`'numbers'`) or its calendar day (`'date'`, one day per track starting at `startDate`,
+formatted per `showYear`). Two per-track fields on `TrackPlacement` refine the sequence:
+
+- `bufferDays` - extra days after a track (a rest day, a border crossing) that shift the
+  dates of the tracks after it; meaningful in `'date'` mode only.
+- `alternative` - marks a backup variant of another track. The numbering skips it (it
+  gets an `ALT` badge instead of a number or date) and the map renders it dotted and
+  faded so the main route reads at a glance. The eye button next to the GPX upload
+  (persisted `showAlternativesOnMap` setting) hides or shows all alternatives on the map;
+  they stay listed in the pane. Marks are **dormant** while the adventure has no
+  numbering: kept in the database but rendered normally, so toggling numbering back on
+  restores them without data loss.
+
+Track order inside an adventure follows the manual order of the track pane (the
+`fileOrder` setting). Numbering tags are derived reactively from that order
+(`trackTags`), never stored, and alternatives never occupy a slot in the sequence -
+moving an alternative around does not renumber anything.
+
+All of this is planning metadata that deliberately lives **beside** the GPX file, not
+inside it - see [ADR 0007](docs/decisions/0007-planning-metadata-outside-gpx.md).
+
+## Track data model
+
+A library track **is** one GPX file, held in memory as a `GPXFile` instance from the
+`gpx/` engine and persisted as one row of the Dexie `files` table (keys `gpx-N`, kept in
+`fileids`). The engine mirrors the GPX 1.1 schema (types in `gpx/src/types.ts`, classes
+with behaviour in `gpx/src/gpx.ts`):
+
+```
+GPXFile
+├── attributes                creator, xmlns…
+├── metadata                  name, desc, author, time…
+├── wpt: Waypoint[]           points of interest: lat/lon + ele, name, sym, cmt…
+└── trk: Track[]              usually one; the app treats the file as "the track"
+    ├── extensions            'gpx_style:line' - stored color / opacity / width
+    └── trkseg: TrackSegment[]
+        └── trkpt: TrackPoint[]   lat/lon + optional ele, time, and
+                                  heart-rate / cadence / temperature / power extensions
+```
+
+`parseGPX()` / `buildGPX()` (`gpx/src/io.ts`) convert between XML and this shape; the
+classes are Immer-immutable and carry the editing operations (crop, reverse, join,
+statistics, `toGeoJSON()`, …).
+
+Beyond the GPX data itself, two kinds of state ride along and are **never serialized to
+GPX XML**:
+
+- **`_data` sidecars** on the file/track/segment/waypoint objects: the Dexie file id, a
+  cached style summary, hidden flags, and tree indexes. `buildGPX()` does not emit them,
+  so exports contain only real GPX content. The stored `gpx_style:line` extension *is*
+  real GPX content - it is the style the user picked in the style dialog, and it travels
+  with the file.
+- **Planning metadata** in the library tables (`trackPlacements`: adventure, buffer days,
+  alternative mark) and in settings (manual `fileOrder`) - see the library section above
+  and [ADR 0007](docs/decisions/0007-planning-metadata-outside-gpx.md).
+
+**Rendering** (`website/src/lib/components/map/gpx-layer/gpx-layer.ts`): every file gets
+its own MapLibre GeoJSON source plus three layers (line, direction markers, waypoint
+pins). `GPXFile.toGeoJSON()` emits one LineString feature per track segment whose
+`color`/`opacity`/`width` properties come from `gpx_style:line` (falling back to the
+auto-assigned palette color and the default style settings), and the line layer paints
+them data-driven (`['get', 'color']`, …). Render-only overrides are applied when the
+GeoJSON is built or on the layer, and never written back to the file: selected tracks get
++2 width and +0.1 opacity; active alternatives get their opacity capped at 0.5 and a
+dotted `line-dasharray` (`[0.1, 3]`, scaled by line width); the library selection and the
+alternatives eye toggle drive layer visibility.
 
 ## External services
 
@@ -167,17 +255,19 @@ The full phased plan is maintained outside the repo; the shape of it:
 - **Phase 1 - VPS + PocketBase + Google login.** Single Hetzner VPS running Caddy,
   PocketBase (Google OAuth via popup, SQLite, GPX file storage), and self-hosted BRouter;
   frontend on Cloudflare Pages; infrastructure as code in `infra/`.
-- **Phase 2 - the library (the actual product).** Expedition ▸ Adventure ▸ Track tree in
-  a left panel; **selection drives what renders on the map**; login required; automatic
-  sync (last-write-wins with a baseline check and a conflict prompt) hooked into
-  `commitFileStateChange()`; per-item sync badges; Dexie schema v2 drops the leftover
-  Overpass tables. See [ADR 0006](docs/decisions/0006-product-model-and-sync.md).
+- **Phase 2 - the library (the actual product).** The local half is implemented: the
+  Expedition ▸ Adventure ▸ Track tree with selection driving the map, planning metadata
+  (numbering, trip dates, buffer days, alternative tracks - see the library section),
+  and the Dexie v2 schema that dropped the leftover Overpass tables. What remains is the
+  cloud half: login required; automatic sync (last-write-wins with a baseline check and
+  a conflict prompt) hooked into `commitFileStateChange()`; per-item sync badges. See
+  [ADR 0006](docs/decisions/0006-product-model-and-sync.md).
 - **Phase 3 - polish.** Standalone POIs, share links (the `/embed` route is kept for
   this), PocketBase realtime, mobile pass, continued refactoring of inherited modules.
 
 ## Known debt
 
-- **~22 inherited upstream type errors** (`svelte-check`) and Prettier violations in
+- **~18 inherited upstream type errors** (`svelte-check`) and Prettier violations in
   inherited files; the CI lint/type-check jobs are advisory (`continue-on-error`) until
   these are cleaned, then graduate to blocking gates.
 - **Cloud sync is a placeholder**: the library panel's sync button only shows a toast;
