@@ -17,6 +17,18 @@ export type Metadata = {
     author?: Author;
     link?: Link;
     time?: Date;
+    extensions?: MetadataExtensions;
+};
+
+/**
+ * Extensions carried under `<metadata><extensions>`. Adventure Planner uses the
+ * `ap:data` element to store a single JSON payload that round-trips adventure
+ * and per-track metadata with no native GPX representation (numbering, dates,
+ * buffer days, alternative flags). The key is namespaced so foreign GPX readers
+ * ignore it, and the serializer emits whatever is present here.
+ */
+export type MetadataExtensions = {
+    'ap:data'?: string;
 };
 
 export type Link = {

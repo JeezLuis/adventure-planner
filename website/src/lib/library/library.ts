@@ -214,6 +214,26 @@ export const selectedAdventureId: Readable<string | null> = derived(librarySelec
     items.length === 1 && items[0].kind === 'adventure' ? items[0].id : null
 );
 
+/**
+ * The expedition a new or imported adventure lands in: the selected expedition,
+ * or the expedition of the selected adventure, or null (root) when the selection
+ * is not a single item. Shared by the library "New adventure" action and the
+ * File menu "Import adventure" action.
+ */
+export const targetExpeditionId: Readable<string | null> = derived(
+    [librarySelection, adventures],
+    ([items, allAdventures]) => {
+        if (items.length !== 1) {
+            return null;
+        }
+        const item = items[0];
+        if (item.kind === 'expedition') {
+            return item.id;
+        }
+        return allAdventures.find((a) => a.id === item.id)?.expeditionId ?? null;
+    }
+);
+
 /** The ids of an expedition and every expedition nested below it. */
 function expeditionSubtreeIds(rootId: string, allExpeditions: Expedition[]): Set<string> {
     const childrenByParent = new Map<string | null, string[]>();
@@ -582,10 +602,25 @@ export async function placeTracks(fileIds: string[], adventureId: string | null)
  * below honors it instead of falling back to the currently selected adventure.
  * A null destination clears any stale placement left on a recycled file id.
  */
-const queuedPlacements = new Map<string, string | null>();
+/** A queued placement, optionally carrying the track's round-trip metadata. */
+type QueuedPlacement = { adventureId: string; bufferDays?: number; alternative?: boolean };
 
-export function queuePlacement(fileId: string, adventureId: string | null): void {
-    queuedPlacements.set(fileId, adventureId);
+const queuedPlacements = new Map<string, QueuedPlacement | null>();
+
+/**
+ * Queues the placement for a file about to be created, optionally with its
+ * buffer-days / alternative metadata. A null adventureId clears any stale
+ * placement left on a recycled id. The metadata travels WITH the placement so
+ * the 'creating' hook can write the complete row in a single put: applying it
+ * afterwards would race with (and be clobbered by) that deferred write. This is
+ * used by adventure round-trip import.
+ */
+export function queuePlacement(
+    fileId: string,
+    adventureId: string | null,
+    meta?: { bufferDays?: number; alternative?: boolean }
+): void {
+    queuedPlacements.set(fileId, adventureId == null ? null : { adventureId, ...meta });
 }
 
 /**
@@ -622,7 +657,17 @@ if (browser) {
                 // so the id may still carry the placement of a deleted file.
                 const write =
                     queued != null
-                        ? db.trackPlacements.put({ fileId: primaryKey, adventureId: queued })
+                        ? db.trackPlacements.put({
+                              fileId: primaryKey,
+                              adventureId: queued.adventureId,
+                              // Alternatives never carry buffer days (they hold no
+                              // slot in the numbering), so the two are exclusive.
+                              ...(queued.alternative
+                                  ? { alternative: true }
+                                  : queued.bufferDays
+                                    ? { bufferDays: queued.bufferDays }
+                                    : {}),
+                          })
                         : db.trackPlacements.delete(primaryKey);
                 Promise.resolve(write).catch(() => {});
             } else if (hasRestored && restored != null) {
@@ -672,7 +717,9 @@ if (browser) {
                     orphans.forEach((placement) =>
                         restoredPlacements.set(placement.fileId, placement.adventureId)
                     );
-                    await db.trackPlacements.bulkDelete(orphans.map((placement) => placement.fileId));
+                    await db.trackPlacements.bulkDelete(
+                        orphans.map((placement) => placement.fileId)
+                    );
                 }
             }).catch(() => {
                 // Pruning retries on the next file-list change.

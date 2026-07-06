@@ -290,6 +290,12 @@ export class GPXFile extends GPXTreeNode<Track> {
             if (this.metadata.time && !exclude.includes('time')) {
                 file.metadata.time = this.metadata.time;
             }
+            // Preserve custom metadata extensions (e.g. Adventure Planner's
+            // `ap:data` payload) that the parser kept but the whitelist above
+            // would otherwise drop on write.
+            if (this.metadata.extensions) {
+                file.metadata.extensions = cloneJSON(this.metadata.extensions);
+            }
         }
         return file;
     }

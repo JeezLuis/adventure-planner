@@ -30,6 +30,10 @@ const attributesWithNamespace = {
     color: 'gpx_style:color',
     opacity: 'gpx_style:opacity',
     width: 'gpx_style:width',
+    // Adventure Planner's metadata payload element (see MetadataExtensions):
+    // `removeNSPrefix` strips the `ap:` prefix on read, so re-add it here to keep
+    // the in-memory key symmetric with what the serializer writes.
+    data: 'ap:data',
 };
 
 const floatPatterns = [
@@ -253,6 +257,7 @@ export function buildGPX(file: GPXFile, exclude: string[]): string {
     gpx.attributes['xmlns:gpxx'] = 'http://www.garmin.com/xmlschemas/GpxExtensions/v3';
     gpx.attributes['xmlns:gpxpx'] = 'http://www.garmin.com/xmlschemas/PowerExtension/v1';
     gpx.attributes['xmlns:gpx_style'] = 'http://www.topografix.com/GPX/gpx_style/0/2';
+    gpx.attributes['xmlns:ap'] = 'https://github.com/JeezLuis/adventure-planner';
 
     if (gpx.trk.length === 1 && (gpx.trk[0].name === undefined || gpx.trk[0].name === '')) {
         gpx.trk[0].name = gpx.metadata.name;

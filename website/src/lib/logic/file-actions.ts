@@ -44,8 +44,14 @@ import {
     queuePlacement,
     selectLibraryItem,
     trackPlacements,
+    updateAdventure,
     type LibrarySelectionItem,
 } from '$lib/library/library';
+import {
+    ADVENTURE_EXT_KEY,
+    decodeAdventurePayload,
+    type AdventurePayload,
+} from '$lib/logic/adventure-gpx';
 
 /**
  * Deletes an adventure or an expedition (with everything nested below it)
@@ -208,6 +214,31 @@ function buildSections(file: GPXFile): GPXFile[] {
 }
 
 /**
+ * Splits a file into one GPXFile per `<trk>`, used when re-importing an
+ * adventure we exported: the export writes exactly one `<trk>` per track, so
+ * this restores the same tracks 1:1 - unlike {@link buildSections}, it never
+ * splits a single multi-segment track by segment. Each track's name comes from
+ * the `<trk>` name the export stamped; waypoints stay on the first section.
+ */
+function splitByTrack(file: GPXFile): GPXFile[] {
+    if (file.trk.length === 0) {
+        return [file];
+    }
+    return file.trk.map((track, index) => {
+        const newFile = file.clone();
+        newFile.replaceTracks(0, file.trk.length - 1, [track.clone()]);
+        newFile.metadata = {
+            ...newFile.metadata,
+            name: track.name ?? `${file.metadata.name ?? ''} (${index + 1})`,
+        };
+        if (index > 0 && newFile.wpt.length > 0) {
+            newFile.replaceWaypoints(0, newFile.wpt.length - 1, []);
+        }
+        return newFile;
+    });
+}
+
+/**
  * Imports each GPX file as a new adventure inside the given expedition (null =
  * root): the file name becomes the adventure name and each of its sections
  * becomes a track. This is the "import adventure" action and the destination
@@ -222,22 +253,60 @@ export async function importAdventures(
     if (files.length === 0) {
         return;
     }
-    const perFile: { file: GPXFile; adventureId: string }[] = [];
+    // One entry per file: the created adventure plus the optional round-trip
+    // payload, present only for GPX files that "Export adventure" produced.
+    const perFile: {
+        file: GPXFile;
+        adventureId: string;
+        payload: AdventurePayload | null;
+    }[] = [];
     for (const file of files) {
+        const payload = decodeAdventurePayload(file.metadata.extensions?.[ADVENTURE_EXT_KEY]);
         const name =
-            file.metadata.name?.trim() || i18n._('library.imported_adventure', 'Imported adventure');
+            file.metadata.name?.trim() ||
+            i18n._('library.imported_adventure', 'Imported adventure');
         const adventureId = await createAdventure(expeditionId, name);
-        perFile.push({ file, adventureId });
+        // Restore the adventure-level metadata now: the row already exists and
+        // has no dependency on the tracks created below. Per-track metadata is
+        // handled through queuePlacement instead (see below).
+        if (payload) {
+            await updateAdventure(adventureId, {
+                name,
+                description: payload.adventure.description,
+                numbering: payload.adventure.numbering,
+                startDate: payload.adventure.startDate,
+                showYear: payload.adventure.showYear,
+            });
+        }
+        perFile.push({ file, adventureId, payload });
     }
     const createdIds: string[] = [];
     await fileActionManager.applyGlobal((draft) => {
-        const built = perFile.flatMap(({ file, adventureId }) =>
-            buildSections(file).map((section) => ({ section, adventureId }))
-        );
+        const built = perFile.flatMap(({ file, adventureId, payload }) => {
+            // A payload guarantees one <trk> per track, so split by track to
+            // rebuild them 1:1; otherwise fall back to the section heuristic.
+            const sections = payload ? splitByTrack(file) : buildSections(file);
+            return sections.map((section, sectionIndex) => ({
+                section,
+                adventureId,
+                trackMeta: payload ? payload.tracks[sectionIndex] : undefined,
+            }));
+        });
         const ids = getFileIds(built.length);
-        built.forEach(({ section, adventureId }, index) => {
+        built.forEach(({ section, adventureId, trackMeta }, index) => {
             section._data.id = ids[index];
-            queuePlacement(section._data.id, adventureId);
+            // Queue the per-track metadata WITH the placement so the 'creating'
+            // hook writes the complete row in one put; applying it afterwards
+            // would race with (and be clobbered by) that deferred write.
+            queuePlacement(
+                section._data.id,
+                adventureId,
+                trackMeta
+                    ? trackMeta.alternative
+                        ? { alternative: true }
+                        : { bufferDays: trackMeta.bufferDays }
+                    : undefined
+            );
             draft.set(section._data.id, freeze(section));
             createdIds.push(section._data.id);
         });
@@ -1070,11 +1139,6 @@ export const fileActions = {
             selection.applyToOrderedSelectedItemsFromFile((fileId, level, items) => {
                 draft.delete(fileId);
             });
-        });
-    },
-    deleteAllFiles: () => {
-        fileActionManager.applyGlobal((draft) => {
-            draft.clear();
         });
     },
 };

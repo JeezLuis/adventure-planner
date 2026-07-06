@@ -159,4 +159,28 @@ describe('parseGPX -> buildGPX -> parseGPX round trip', () => {
 
         expect(reparsed.trk.map((track) => track.name)).toEqual(['track 1', 'track 2']);
     });
+
+    it('round-trips a custom ap:data metadata payload verbatim', () => {
+        // Adventure Planner stores adventure/track metadata that has no native
+        // GPX representation as a JSON string under <metadata><extensions>. The
+        // serializer must emit it and the parser must read it back byte-for-byte,
+        // including XML-special characters (&, <, >) inside the JSON.
+        const payload = JSON.stringify({
+            v: 1,
+            adventure: {
+                numbering: 'date',
+                startDate: '2026-07-01',
+                showYear: true,
+                description: 'A & B < C > D',
+            },
+            tracks: [{ bufferDays: 1 }, { alternative: true }],
+        });
+
+        const file = parseGPX(readFixture('with_tracks'));
+        file.metadata.extensions = { 'ap:data': payload };
+
+        const reparsed = parseGPX(buildGPX(file, []));
+
+        expect(reparsed.metadata.extensions?.['ap:data']).toBe(payload);
+    });
 });

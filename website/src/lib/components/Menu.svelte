@@ -7,7 +7,6 @@
     import Shortcut from '$lib/components/Shortcut.svelte';
     import {
         Plus,
-        Copy,
         Download,
         Undo2,
         Redo2,
@@ -36,17 +35,18 @@
         ClipboardPaste,
         PaintBucket,
         FileStack,
-        FileX,
         ChartArea,
         CloudUpload,
         Maximize,
         Maximize2,
         Minimize2,
+        FolderInput,
+        FolderOutput,
     } from '@lucide/svelte';
     import { map } from '$lib/components/map/map';
     import { editMetadata } from '$lib/components/file-list/metadata/utils.svelte';
     import { editStyle } from '$lib/components/file-list/style/utils.svelte';
-    import { exportState, ExportState } from '$lib/components/export/utils.svelte';
+    import { exportState, ExportState, exportAdventure } from '$lib/components/export/utils.svelte';
     import { anySelectedLayer } from '$lib/components/map/layer-control/utils';
     import { defaultOverlays } from '$lib/assets/layers';
     import LayerControlSettings from '$lib/components/map/layer-control/LayerControlSettings.svelte';
@@ -57,7 +57,14 @@
     import { languages } from '$lib/languages';
     import { getURLForLanguage } from '$lib/utils';
     import { settings } from '$lib/logic/settings';
-    import { createFile, fileActions, pasteSelection } from '$lib/logic/file-actions';
+    import {
+        createFile,
+        fileActions,
+        pasteSelection,
+        triggerFileInput,
+        importAdventures,
+    } from '$lib/logic/file-actions';
+    import { selectedAdventureId, targetExpeditionId } from '$lib/library/library';
     import { fileStateCollection } from '$lib/logic/file-state';
     import { fileActionManager } from '$lib/logic/file-action-manager';
     import { copied, selection } from '$lib/logic/selection';
@@ -128,36 +135,28 @@
                     <span class="hidden md:block">{i18n._('gpx.file')}</span>
                 </Menubar.Trigger>
                 <Menubar.Content class="border-none">
-                    <Menubar.Item onclick={createFile}>
+                    <Menubar.Item onclick={createFile} disabled={$selectedAdventureId === null}>
                         <Plus size="16" />
                         {i18n._('menu.new')}
                         <Shortcut key="+" ctrl={true} />
                     </Menubar.Item>
-                    <Menubar.Separator />
                     <Menubar.Item
-                        onclick={fileActions.duplicateSelection}
-                        disabled={$selection.size == 0}
+                        onclick={() =>
+                            triggerFileInput((files) =>
+                                importAdventures(files, $targetExpeditionId)
+                            )}
                     >
-                        <Copy size="16" />
-                        {i18n._('menu.duplicate')}
-                        <Shortcut key="D" ctrl={true} />
+                        <FolderInput size="16" />
+                        {i18n._('menu.import_adventure')}
                     </Menubar.Item>
                     <Menubar.Separator />
                     <Menubar.Item
                         onclick={() => tick().then(fileActions.deleteSelectedFiles)}
                         disabled={$selection.size == 0}
                     >
-                        <FileX size="16" />
+                        <Trash2 size="16" />
                         {i18n._('menu.delete')}
                         <Shortcut key="⌫" ctrl={true} />
-                    </Menubar.Item>
-                    <Menubar.Item
-                        onclick={fileActions.deleteAllFiles}
-                        disabled={fileStateCollection.size == 0}
-                    >
-                        <FileX size="16" />
-                        {i18n._('menu.delete_all')}
-                        <Shortcut key="⌫" ctrl={true} shift={true} />
                     </Menubar.Item>
                     <Menubar.Separator />
                     <Menubar.Item
@@ -169,12 +168,12 @@
                         <Shortcut key="S" ctrl={true} />
                     </Menubar.Item>
                     <Menubar.Item
-                        onclick={() => (exportState.current = ExportState.ALL)}
-                        disabled={fileStateCollection.size == 0}
+                        onclick={() =>
+                            $selectedAdventureId && exportAdventure($selectedAdventureId)}
+                        disabled={$selectedAdventureId === null}
                     >
-                        <Download size="16" />
-                        {i18n._('menu.export_all')}
-                        <Shortcut key="S" ctrl={true} shift={true} />
+                        <FolderOutput size="16" />
+                        {i18n._('menu.export_adventure')}
                     </Menubar.Item>
                 </Menubar.Content>
             </Menubar.Menu>
@@ -511,7 +510,10 @@
                 e.target.role === 'menuitemcheckbox');
 
         if (e.key === '+' && (e.metaKey || e.ctrlKey)) {
-            createFile();
+            // A new track needs an adventure to live in (matches the File menu).
+            if ($selectedAdventureId !== null) {
+                createFile();
+            }
             e.preventDefault();
         } else if (e.key === 'd' && (e.metaKey || e.ctrlKey)) {
             fileActions.duplicateSelection();
@@ -532,11 +534,7 @@
                 e.preventDefault();
             }
         } else if ((e.key === 's' || e.key == 'S') && (e.metaKey || e.ctrlKey)) {
-            if (e.shiftKey) {
-                if (fileStateCollection.size > 0) {
-                    exportState.current = ExportState.ALL;
-                }
-            } else if ($selection.size > 0) {
+            if (!e.shiftKey && $selection.size > 0) {
                 exportState.current = ExportState.SELECTION;
             }
             e.preventDefault();
@@ -548,12 +546,8 @@
             }
             e.preventDefault();
         } else if ((e.key === 'Backspace' || e.key === 'Delete') && (e.metaKey || e.ctrlKey)) {
-            if (!targetInput) {
-                if (e.shiftKey) {
-                    fileActions.deleteAllFiles();
-                } else {
-                    fileActions.deleteSelection();
-                }
+            if (!targetInput && !e.shiftKey) {
+                fileActions.deleteSelection();
                 e.preventDefault();
             }
         } else if (e.key === 'a' && (e.metaKey || e.ctrlKey)) {
