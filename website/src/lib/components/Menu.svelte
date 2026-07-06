@@ -42,6 +42,7 @@
         Minimize2,
         FolderInput,
         FolderOutput,
+        Ship,
     } from '@lucide/svelte';
     import { map } from '$lib/components/map/map';
     import { editMetadata } from '$lib/components/file-list/metadata/utils.svelte';
@@ -64,7 +65,11 @@
         triggerFileInput,
         importAdventures,
     } from '$lib/logic/file-actions';
-    import { selectedAdventureId, targetExpeditionId } from '$lib/library/library';
+    import {
+        pendingFerryCreation,
+        selectedAdventureId,
+        targetExpeditionId,
+    } from '$lib/library/library';
     import { fileStateCollection } from '$lib/logic/file-state';
     import { fileActionManager } from '$lib/logic/file-action-manager';
     import { copied, selection } from '$lib/logic/selection';
@@ -139,6 +144,15 @@
                         <Plus size="16" />
                         {i18n._('menu.new')}
                         <Shortcut key="+" ctrl={true} />
+                    </Menubar.Item>
+                    <Menubar.Item
+                        onclick={() =>
+                            $selectedAdventureId &&
+                            pendingFerryCreation.set({ adventureId: $selectedAdventureId })}
+                        disabled={$selectedAdventureId === null}
+                    >
+                        <Ship size="16" />
+                        {i18n._('menu.add_ferry')}
                     </Menubar.Item>
                     <Menubar.Item
                         onclick={() =>

@@ -497,6 +497,13 @@ export const pendingMetadataEdit = writable<LibrarySelectionItem | null>(null);
 /** The track whose buffer-days dialog is open (see BufferDaysDialog). */
 export const pendingBufferEdit = writable<string | null>(null);
 
+/**
+ * The adventure a ferry trip is being added to (see FerryTripDialog), or null
+ * when the dialog is closed. Set by the "Ferry" action, which - like "New
+ * track" - requires a single selected adventure for the leg to land in.
+ */
+export const pendingFerryCreation = writable<{ adventureId: string } | null>(null);
+
 /** The tag shown in front of a track name, and the buffer days after that track. */
 export type TrackTag = { label: string; bufferDays: number; alternative?: boolean };
 

@@ -29,7 +29,12 @@ import { splitAs } from '$lib/components/toolbar/tools/scissors/scissors';
 import { mapCursor, MapCursorState } from '$lib/logic/map-cursor';
 import { ANCHOR_LAYER_KEY } from '$lib/components/map/style';
 import { gpxColors } from '$lib/components/map/gpx-layer/gpx-layers';
-import { activeTrackAlternatives, libraryGatingEnabled, visibleFileIds } from '$lib/library/library';
+import {
+    activeTrackAlternatives,
+    libraryGatingEnabled,
+    visibleFileIds,
+} from '$lib/library/library';
+import { FERRY_TRACK_TYPE } from '$lib/logic/ferry';
 
 /** Palette used to auto-assign track colors, also offered as quick-pick swatches in the style dialog. */
 export const trackColorPalette = [
@@ -286,15 +291,17 @@ export class GPXLayer {
             _map.setFilter(this.fileId, segmentFilter, { validate: false });
 
             // Alternative tracks render dotted (the round line-cap turns
-            // near-zero dashes into dots) and faded, see getGeoJSON. Render
-            // override only, the stored style is untouched: unmarking the
-            // track (or the mark going dormant when the numbering is turned
-            // off) restores the solid line.
+            // near-zero dashes into dots) and faded, see getGeoJSON. Ferry
+            // tracks render dashed to read as a sea crossing rather than a road.
+            // Render override only, the stored style is untouched: unmarking the
+            // track (or the mark going dormant when the numbering is turned off)
+            // restores the solid line. Alternative wins when a track is both.
             const alternative = get(activeTrackAlternatives).has(this.fileId);
+            const ferry = file.trk.some((track) => track.type === FERRY_TRACK_TYPE);
             _map.setPaintProperty(
                 this.fileId,
                 'line-dasharray',
-                alternative ? [0.1, 3] : undefined
+                alternative ? [0.1, 3] : ferry ? [2, 2] : undefined
             );
 
             if (get(directionMarkers)) {

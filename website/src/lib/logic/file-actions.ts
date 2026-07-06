@@ -24,6 +24,7 @@ import {
     TrackPoint,
     TrackSegment,
     Waypoint,
+    distance,
     type Coordinates,
     type LineStyleExtension,
     type WaypointType,
@@ -52,6 +53,7 @@ import {
     decodeAdventurePayload,
     type AdventurePayload,
 } from '$lib/logic/adventure-gpx';
+import { FERRY_COLOR, FERRY_TRACK_TYPE, getFerryRoute, shortPlaceName } from '$lib/logic/ferry';
 
 /**
  * Deletes an adventure or an expedition (with everything nested below it)
@@ -121,6 +123,88 @@ export function createFile() {
     fileActions.add(file);
     selection.selectFileWhenLoaded(file._data.id);
     currentTool.set(Tool.ROUTING);
+}
+
+/**
+ * Adds a ferry trip (a sea crossing) as a new track in the given adventure.
+ * The maritime path comes from {@link getFerryRoute}; the track is marked with
+ * the standard GPX `<trk><type>ferry</type>` and styled a maritime blue, both
+ * of which round-trip through export/import and other editors with no
+ * app-specific data. Timestamps are spread across the points by distance so the
+ * leg runs at a constant speed between the scheduled departure and arrival; the
+ * arrival's whole-day offset becomes the placement's buffer days, so a
+ * date-numbered adventure pushes the following stages back by the length of the
+ * crossing. Shows a toast and does nothing when not even a fallback line could
+ * be produced.
+ */
+export async function createFerryTrip(opts: {
+    adventureId: string;
+    from: Coordinates;
+    to: Coordinates;
+    fromName: string;
+    toName: string;
+    departure: Date;
+    arrival: Date;
+    dayOffset: number;
+}): Promise<void> {
+    const { adventureId, from, to, fromName, toName, departure, arrival, dayOffset } = opts;
+
+    const { points, approximate } = await getFerryRoute(from, to);
+    if (points.length < 2) {
+        toast.error(
+            i18n._('library.ferry_error_route', 'Could not compute a sea route between these ports')
+        );
+        return;
+    }
+
+    // Constant speed: spread the scheduled duration across the points by their
+    // cumulative distance, so the first point is exactly the departure and the
+    // last exactly the arrival. Setting the times on the plain points before the
+    // file is committed keeps the whole creation a single undoable action.
+    const cumulative: number[] = [0];
+    for (let i = 1; i < points.length; i++) {
+        cumulative.push(
+            cumulative[i - 1] + distance(points[i - 1].getCoordinates(), points[i].getCoordinates())
+        );
+    }
+    const totalDistance = cumulative[cumulative.length - 1] || 1;
+    const departureMs = departure.getTime();
+    const spanMs = Math.max(0, arrival.getTime() - departureMs);
+    points.forEach((point, i) => {
+        point.time = new Date(departureMs + (spanMs * cumulative[i]) / totalDistance);
+    });
+
+    const file = newGPXFile();
+    file.metadata.name = i18n
+        ._('library.ferry_default_name', 'Ferry: {from} → {to}')
+        .replace('{from}', shortPlaceName(fromName))
+        .replace('{to}', shortPlaceName(toName));
+    const track = new Track({
+        type: FERRY_TRACK_TYPE,
+        trkseg: [new TrackSegment({ trkpt: points })],
+    });
+    file.replaceTracks(0, file.trk.length - 1, [track]);
+    file.setStyle({ 'gpx_style:color': FERRY_COLOR });
+
+    const id = getFileIds(1)[0];
+    file._data.id = id;
+    // Queue the placement (with the crossing's whole-day span as buffer days)
+    // before adding the file, so the library 'creating' hook writes the
+    // complete row in one put rather than racing a later update.
+    queuePlacement(id, adventureId, { bufferDays: Math.max(0, Math.floor(dayOffset)) });
+    fileActions.add(file);
+
+    selection.selectFileWhenLoaded(id);
+    boundsManager.fitBoundsOnLoad([id]);
+
+    if (approximate) {
+        toast.warning(
+            i18n._(
+                'library.ferry_approximate',
+                'No sea route found between these ports; drew a direct line instead'
+            )
+        );
+    }
 }
 
 /**

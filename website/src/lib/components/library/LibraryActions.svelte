@@ -1,11 +1,13 @@
 <script lang="ts">
-    import { Mountain, Tent, Route } from '@lucide/svelte';
+    import { Mountain, Tent, Route, Ship } from '@lucide/svelte';
     import ButtonWithTooltip from '$lib/components/ButtonWithTooltip.svelte';
     import { createFile } from '$lib/logic/file-actions';
     import {
         expeditions,
         librarySelection,
         pendingCreation,
+        pendingFerryCreation,
+        selectedAdventureId,
         targetExpeditionId,
     } from '$lib/library/library';
     import { i18n } from '$lib/i18n.svelte';
@@ -75,6 +77,23 @@
         >
             <Route size="15" />
             {i18n._('library.new_track')}
+        </ButtonWithTooltip>
+        <ButtonWithTooltip
+            variant="ghost"
+            size="sm"
+            class="grow gap-1 h-7 px-1.5 text-xs"
+            label={i18n._(
+                canCreateTrack ? 'library.new_ferry_tooltip' : 'library.new_ferry_disabled_tooltip'
+            )}
+            disabled={!canCreateTrack}
+            onclick={() => {
+                if ($selectedAdventureId) {
+                    pendingFerryCreation.set({ adventureId: $selectedAdventureId });
+                }
+            }}
+        >
+            <Ship size="15" />
+            {i18n._('library.new_ferry')}
         </ButtonWithTooltip>
     </div>
 </div>
