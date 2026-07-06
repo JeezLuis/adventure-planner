@@ -308,17 +308,56 @@ export function buildOffroadOverlay(): StyleSpecification {
 }
 
 /**
- * Built-in overlay catalog. Ships a single "Offroad" overlay (DMD-style path
- * grading); further overlays may be added at runtime as user-defined custom
- * layers or extension-registered layers.
+ * Raster piste/lift overlay from OpenSnowMap (https://www.opensnowmap.org/), a
+ * community project rendering OSM winter-sports data (pistes colored by
+ * difficulty, ski lifts, resort labels) as transparent 256px PNG overlay tiles.
+ *
+ * Community endpoint with no uptime SLA; the styling is baked into the tiles, so
+ * unlike the offroad overlay there are no paint expressions, no shared palette,
+ * and no on-map legend. To graduate off the community server, mirror the tiles
+ * or stand up an equivalent renderer and swap this one URL.
+ */
+export const SKI_TILES_URL = 'https://tiles.opensnowmap.org/pistes/{z}/{x}/{y}.png';
+
+/**
+ * The "Ski resorts" overlay: OpenSnowMap's pre-rendered piste/lift raster tiles
+ * as a single raster layer. Useful when planning offroad adventures near ski
+ * areas. Difficulty colors, lift symbols and resort labels are baked into the
+ * tiles, so there is nothing to style client-side.
+ */
+export function buildSkiOverlay(): StyleSpecification {
+    return {
+        version: 8,
+        sources: {
+            ski: {
+                type: 'raster',
+                tiles: [SKI_TILES_URL],
+                tileSize: 256, // OpenSnowMap serves 256px tiles; MapLibre raster defaults to 512
+                minzoom: 0,
+                maxzoom: 18,
+                attribution:
+                    '&copy; <a href="https://www.opensnowmap.org/" target="_blank">OpenSnowMap</a> (CC-BY-SA), ' +
+                    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+            },
+        },
+        layers: [{ id: 'ski-pistes', type: 'raster', source: 'ski' }],
+    };
+}
+
+/**
+ * Built-in overlay catalog. Ships the DMD-style "Offroad" grading layer and a
+ * "Ski resorts" piste/lift layer; further overlays may be added at runtime as
+ * user-defined custom layers or extension-registered layers.
  */
 export const overlays: { [key: string]: string | StyleSpecification } = {
     offroad: buildOffroadOverlay(),
+    ski: buildSkiOverlay(),
 };
 
 /** Default opacity per overlay id. */
 export const defaultOpacities: { [key: string]: number } = {
     offroad: 0.9,
+    ski: 0.9,
 };
 
 /**
@@ -340,16 +379,18 @@ export const basemapTree: LayerTreeType = {
 export const overlayTree: LayerTreeType = {
     overlays: {
         offroad: true,
+        ski: true,
     },
 };
 
 /** Basemap selected on first launch. */
 export const defaultBasemap = 'outdoor';
 
-/** Overlays enabled on first launch: none (offroad is available but off by default). */
+/** Overlays enabled on first launch: none (both are available but off by default). */
 export const defaultOverlays: LayerTreeType = {
     overlays: {
         offroad: false,
+        ski: false,
     },
 };
 
@@ -366,6 +407,7 @@ export const defaultBasemapTree: LayerTreeType = {
 export const defaultOverlayTree: LayerTreeType = {
     overlays: {
         offroad: true,
+        ski: true,
     },
 };
 
