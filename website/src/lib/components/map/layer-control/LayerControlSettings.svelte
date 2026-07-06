@@ -83,7 +83,6 @@
             });
         }
     });
-
 </script>
 
 <Sheet.Root bind:open>
@@ -183,8 +182,26 @@
                                                     isSelected($currentOverlays, selectedOverlay)
                                                 ) {
                                                     try {
-                                                        if ($map.getLayer(selectedOverlay)) {
-                                                            $map.removeLayer(selectedOverlay);
+                                                        // A built-in overlay may contribute several
+                                                        // map layers (e.g. the offroad overlay's
+                                                        // offroad-track/-path/... lines) whose ids
+                                                        // differ from the overlay id. Remove them all
+                                                        // so updateOverlays() re-adds them with the new
+                                                        // opacity.
+                                                        const overlayStyle =
+                                                            overlays[selectedOverlay];
+                                                        const layerIds =
+                                                            overlayStyle &&
+                                                            typeof overlayStyle === 'object' &&
+                                                            'layers' in overlayStyle
+                                                                ? overlayStyle.layers.map(
+                                                                      (l) => l.id
+                                                                  )
+                                                                : [selectedOverlay];
+                                                        for (const id of layerIds) {
+                                                            if ($map.getLayer(id)) {
+                                                                $map.removeLayer(id);
+                                                            }
                                                         }
                                                     } catch (e) {
                                                         // No reliable way to check if the map is ready to remove sources and layers

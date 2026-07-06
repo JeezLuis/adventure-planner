@@ -11,6 +11,7 @@
     import { ChevronDown, ChevronUp, Heart } from '@lucide/svelte';
     import StreetViewControl from '$lib/components/map/street-view-control/StreetViewControl.svelte';
     import LayerControl from '$lib/components/map/layer-control/LayerControl.svelte';
+    import OffroadLegend from '$lib/components/map/layer-control/OffroadLegend.svelte';
     import CoordinatesPopup from '$lib/components/map/CoordinatesPopup.svelte';
     import Resizer from '$lib/components/Resizer.svelte';
     import { Toaster } from '$lib/components/ui/sonner';
@@ -141,6 +142,7 @@
             <Map class="h-full" />
             <StreetViewControl />
             <LayerControl />
+            <OffroadLegend />
             <GPXLayers />
             <CoordinatesPopup />
             <Toaster richColors />

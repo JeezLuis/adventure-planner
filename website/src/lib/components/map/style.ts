@@ -170,6 +170,11 @@ export class StyleManager {
                                             layer.paint = {};
                                         }
                                         layer.paint['hillshade-exaggeration'] = opacity / 2;
+                                    } else if (layer.type === 'line') {
+                                        if (!layer.paint) {
+                                            layer.paint = {};
+                                        }
+                                        layer.paint['line-opacity'] = opacity;
                                     }
                                 }
                                 map_.addLayer(layer, ANCHOR_LAYER_KEY.overlays);

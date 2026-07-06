@@ -1,6 +1,7 @@
 /**
- * Map layer catalog: the basemaps users can pick from, the (currently empty)
- * built-in overlay catalog, and the terrain/elevation tile source.
+ * Map layer catalog: the basemaps users can pick from, the built-in overlay
+ * catalog (the DMD-style "Offroad" grading layer), and the terrain/elevation
+ * tile source.
  *
  * The app intentionally ships exactly three basemaps, all served by MapTiler
  * Cloud (https://www.maptiler.com/): an outdoor/topographic default, a
@@ -8,12 +9,16 @@
  * is injected at runtime by replacing {@link maptilerKeyPlaceHolder} in the
  * style URLs (see `StyleManager.get` in `components/map/style.ts`).
  *
- * Users can still add their own layers (basemaps or overlays) through the
+ * Users can also add their own layers (basemaps or overlays) through the
  * custom-layers UI, and browser extensions can register overlays through the
- * extension API - both mechanisms mutate `overlays`/`overlayTree` at runtime,
- * which is why those objects are kept even though no built-in overlays exist.
+ * extension API - both mechanisms mutate `overlays`/`overlayTree` at runtime.
  */
-import { type RasterDEMSourceSpecification, type StyleSpecification } from 'maplibre-gl';
+import {
+    type ExpressionSpecification,
+    type LineLayerSpecification,
+    type RasterDEMSourceSpecification,
+    type StyleSpecification,
+} from 'maplibre-gl';
 import { ELEVATION_TILE_URL, ELEVATION_TILE_MAX_ZOOM, ELEVATION_TILE_SIZE } from '$lib/config';
 
 /**
@@ -66,14 +71,255 @@ export const fallbackBasemapStyle: StyleSpecification = {
 };
 
 /**
- * Built-in overlay catalog. Intentionally empty - overlays only exist as
- * user-defined custom layers or extension-registered layers, which are added
- * to this object at runtime.
+ * Palette for the "Offroad" overlay, and the single source of truth shared by
+ * both the paint expressions ({@link buildOffroadOverlay}) and the on-map
+ * legend (`OffroadLegend.svelte`) so the two can never drift.
+ *
+ * The track colors form a green->red difficulty ramp keyed off the OSM
+ * `tracktype` tag (grade1..grade5), mirroring the Drive Mode Dashboard topo
+ * legend (https://www.drivemodedashboard.com/topo-map-legend/).
  */
-export const overlays: { [key: string]: string | StyleSpecification } = {};
+export const OFFROAD_COLORS = {
+    grade1: '#77c15b', // light green - solid / firm gravel
+    grade2: '#2f9e44', // green - mostly solid
+    grade3: '#f2c037', // yellow - mixed hard/soft
+    grade4: '#f08c00', // orange - mostly soft
+    grade5: '#d63a2f', // red - soft / rough
+    ungraded: '#9c6b3f', // brown - highway=track, condition unknown
+    path: '#17a2a2', // teal - highway=path
+    bridleway: '#b24bb2', // purple - highway=bridleway
+    roadMajor: '#d9601a', // dark orange - motorway/trunk/primary
+    roadSecondary: '#f08c00', // orange - secondary
+    roadTertiary: '#f2c037', // yellow - tertiary
+    roadResidential: '#9aa0a6', // grey - residential/unclassified/service
+} as const;
 
-/** Default opacity per overlay id; empty because there are no built-in overlays. */
-export const defaultOpacities: { [key: string]: number } = {};
+/**
+ * Vector tile source feeding the offroad overlay: VersaTiles' free public
+ * server, which serves the Shortbread schema. Unlike our MapTiler basemaps
+ * (OpenMapTiles schema, which drops `tracktype` and flattens `surface` to
+ * paved/unpaved), the Shortbread `streets` layer carries the raw OSM
+ * `tracktype`, `surface` and `kind` (= raw `highway`) values the grading needs.
+ *
+ * This is a community endpoint with no uptime SLA. To graduate to self-hosted
+ * tiles, generate the same Shortbread schema as static PMTiles and swap this
+ * one URL for a `pmtiles://...` reference - the style below is unchanged.
+ */
+export const OFFROAD_TILES_URL = 'https://tiles.versatiles.org/tiles/osm/{z}/{x}/{y}';
+
+/** Shared zoom->width curve for the paved-road hierarchy; `mult` scales per class. */
+function offroadWidth(mult: number): ExpressionSpecification {
+    return [
+        'interpolate',
+        ['exponential', 1.5],
+        ['zoom'],
+        9,
+        0.6 * mult,
+        12,
+        1.4 * mult,
+        14,
+        2.4 * mult,
+        16,
+        4 * mult,
+        18,
+        6.5 * mult,
+    ];
+}
+
+/**
+ * Width curve for tracks/paths/bridleways. The provider's tiles only start
+ * carrying these classes at ~zoom 13, so this curve is deliberately bold from
+ * z13 up: they read immediately when they appear instead of being hair-thin
+ * lines the user has to zoom further to notice. `mult` scales per class.
+ */
+function offroadTrailWidth(mult: number): ExpressionSpecification {
+    return [
+        'interpolate',
+        ['exponential', 1.5],
+        ['zoom'],
+        12,
+        1.6 * mult,
+        13,
+        2.6 * mult,
+        14,
+        3.4 * mult,
+        16,
+        5 * mult,
+        18,
+        7.5 * mult,
+    ];
+}
+
+/**
+ * Track color: `tracktype` wins when present; otherwise `surface` substitutes
+ * onto the same ramp; otherwise (a bare `highway=track`) it falls through to
+ * the "ungraded" brown. `has` guards mean an unrecognized value degrades to
+ * brown rather than mis-coloring.
+ */
+function offroadTrackColor(): ExpressionSpecification {
+    const c = OFFROAD_COLORS;
+    return [
+        'case',
+        ['has', 'tracktype'],
+        [
+            'match',
+            ['get', 'tracktype'],
+            'grade1',
+            c.grade1,
+            'grade2',
+            c.grade2,
+            'grade3',
+            c.grade3,
+            'grade4',
+            c.grade4,
+            'grade5',
+            c.grade5,
+            c.ungraded,
+        ],
+        ['has', 'surface'],
+        [
+            'match',
+            ['get', 'surface'],
+            ['compacted', 'fine_gravel', 'gravel', 'pebblestone'],
+            c.grade1,
+            [
+                'paved',
+                'asphalt',
+                'concrete',
+                'concrete:plates',
+                'paving_stones',
+                'sett',
+                'cobblestone',
+                'metal',
+                'wood',
+            ],
+            c.grade2,
+            ['unpaved', 'dirt', 'ground', 'earth', 'clay'],
+            c.grade4,
+            ['sand', 'mud', 'grass', 'rock'],
+            c.grade5,
+            c.ungraded,
+        ],
+        c.ungraded,
+    ];
+}
+
+/**
+ * The "Offroad" overlay: a green->red difficulty grading of tracks plus
+ * distinct styling for paths, bridleways and the paved road hierarchy, built
+ * from raw OSM tags exposed by the Shortbread `streets` layer.
+ *
+ * Layer order = paint order (roads first, then tracks/paths on top), which
+ * `StyleManager.updateOverlays` preserves by inserting every layer before the
+ * same overlay anchor.
+ */
+export function buildOffroadOverlay(): StyleSpecification {
+    const c = OFFROAD_COLORS;
+    const line = (
+        id: string,
+        filter: ExpressionSpecification,
+        color: ExpressionSpecification | string,
+        widthMult: number,
+        extraLayout: LineLayerSpecification['layout'] = {},
+        extraPaint: LineLayerSpecification['paint'] = {}
+    ): LineLayerSpecification => ({
+        id,
+        type: 'line',
+        source: 'offroad',
+        'source-layer': 'streets',
+        filter,
+        layout: { 'line-join': 'round', ...extraLayout },
+        paint: { 'line-color': color, 'line-width': offroadWidth(widthMult), ...extraPaint },
+    });
+
+    return {
+        version: 8,
+        sources: {
+            offroad: {
+                type: 'vector',
+                tiles: [OFFROAD_TILES_URL],
+                minzoom: 0,
+                maxzoom: 14,
+                attribution:
+                    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+            },
+        },
+        layers: [
+            line(
+                'offroad-road-residential',
+                [
+                    'match',
+                    ['get', 'kind'],
+                    ['residential', 'living_street', 'unclassified', 'service'],
+                    true,
+                    false,
+                ],
+                c.roadResidential,
+                0.8,
+                { 'line-cap': 'round' }
+            ),
+            line(
+                'offroad-road-tertiary',
+                ['==', ['get', 'kind'], 'tertiary'],
+                c.roadTertiary,
+                0.9,
+                { 'line-cap': 'round' }
+            ),
+            line(
+                'offroad-road-secondary',
+                ['==', ['get', 'kind'], 'secondary'],
+                c.roadSecondary,
+                1.05,
+                { 'line-cap': 'round' }
+            ),
+            line(
+                'offroad-road-major',
+                ['match', ['get', 'kind'], ['motorway', 'trunk', 'primary'], true, false],
+                c.roadMajor,
+                1.2,
+                { 'line-cap': 'round' }
+            ),
+            line(
+                'offroad-track',
+                ['==', ['get', 'kind'], 'track'],
+                offroadTrackColor(),
+                1,
+                { 'line-cap': 'butt' },
+                { 'line-dasharray': [2.5, 1.2], 'line-width': offroadTrailWidth(1) }
+            ),
+            line(
+                'offroad-path',
+                ['==', ['get', 'kind'], 'path'],
+                c.path,
+                1,
+                { 'line-cap': 'round' },
+                { 'line-dasharray': [0, 1.8], 'line-width': offroadTrailWidth(0.95) }
+            ),
+            line(
+                'offroad-bridleway',
+                ['==', ['get', 'kind'], 'bridleway'],
+                c.bridleway,
+                1,
+                { 'line-cap': 'round' },
+                { 'line-dasharray': [2, 1.2, 0, 1.2], 'line-width': offroadTrailWidth(0.95) }
+            ),
+        ],
+    };
+}
+
+/**
+ * Built-in overlay catalog. Ships a single "Offroad" overlay (DMD-style path
+ * grading); further overlays may be added at runtime as user-defined custom
+ * layers or extension-registered layers.
+ */
+export const overlays: { [key: string]: string | StyleSpecification } = {
+    offroad: buildOffroadOverlay(),
+};
+
+/** Default opacity per overlay id. */
+export const defaultOpacities: { [key: string]: number } = {
+    offroad: 0.9,
+};
 
 /**
  * A nested tree of layer ids used by the layer-selection UI. Leaves are
@@ -90,17 +336,21 @@ export const basemapTree: LayerTreeType = {
     },
 };
 
-/** Hierarchy of all available overlays (empty; populated at runtime by extensions). */
+/** Hierarchy of all available overlays (also populated at runtime by extensions). */
 export const overlayTree: LayerTreeType = {
-    overlays: {},
+    overlays: {
+        offroad: true,
+    },
 };
 
 /** Basemap selected on first launch. */
 export const defaultBasemap = 'outdoor';
 
-/** Overlays enabled on first launch: none. */
+/** Overlays enabled on first launch: none (offroad is available but off by default). */
 export const defaultOverlays: LayerTreeType = {
-    overlays: {},
+    overlays: {
+        offroad: false,
+    },
 };
 
 /** Basemaps visible in the quick layer picker by default: all three. */
@@ -112,9 +362,11 @@ export const defaultBasemapTree: LayerTreeType = {
     },
 };
 
-/** Overlays visible in the quick layer picker by default: none exist. */
+/** Overlays visible in the quick layer picker by default. */
 export const defaultOverlayTree: LayerTreeType = {
-    overlays: {},
+    overlays: {
+        offroad: true,
+    },
 };
 
 /**

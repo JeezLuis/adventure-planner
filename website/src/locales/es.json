@@ -291,11 +291,31 @@
         "terrain": "Origen del terreno",
         "label": {
             "basemaps": "Mapas base",
+            "offroad": "Clasificación todoterreno",
             "outdoor": "Aire libre",
             "overlays": "Capas",
             "satellite": "Satélite",
             "terrarium": "Teselas de terreno (AWS)",
             "topo": "Topográfico"
+        },
+        "offroad_legend": {
+            "title": "Clasificación todoterreno",
+            "tracks": "Pistas (por estado)",
+            "grade1": "Grado 1 - firme / grava compacta",
+            "grade2": "Grado 2 - casi firme",
+            "grade3": "Grado 3 - mezcla duro/blando",
+            "grade4": "Grado 4 - mayormente blando",
+            "grade5": "Grado 5 - blando / irregular",
+            "ungraded": "Sin clasificar - estado desconocido",
+            "nonmotorized": "No motorizado",
+            "path": "Sendero",
+            "bridleway": "Camino de herradura",
+            "roads": "Carreteras",
+            "road_major": "Autopista / nacional / primaria",
+            "road_secondary": "Secundaria",
+            "road_tertiary": "Terciaria",
+            "road_residential": "Residencial / menor",
+            "note": "Los colores reflejan las etiquetas tracktype/surface de OpenStreetMap; la cobertura varía según la zona."
         }
     },
     "chart": {

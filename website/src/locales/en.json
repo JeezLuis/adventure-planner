@@ -291,11 +291,31 @@
         "terrain": "Terrain source",
         "label": {
             "basemaps": "Basemaps",
+            "offroad": "Offroad grading",
             "outdoor": "Outdoor",
             "overlays": "Overlays",
             "satellite": "Satellite",
             "terrarium": "Terrain Tiles (AWS)",
             "topo": "Topographic"
+        },
+        "offroad_legend": {
+            "title": "Offroad grading",
+            "tracks": "Tracks (by condition)",
+            "grade1": "Grade 1 - solid / firm gravel",
+            "grade2": "Grade 2 - mostly solid",
+            "grade3": "Grade 3 - mixed hard/soft",
+            "grade4": "Grade 4 - mostly soft",
+            "grade5": "Grade 5 - soft / rough",
+            "ungraded": "Ungraded - condition unknown",
+            "nonmotorized": "Non-motorized",
+            "path": "Path",
+            "bridleway": "Bridleway",
+            "roads": "Roads",
+            "road_major": "Motorway / trunk / primary",
+            "road_secondary": "Secondary",
+            "road_tertiary": "Tertiary",
+            "road_residential": "Residential / minor",
+            "note": "Colors reflect OpenStreetMap tracktype/surface tags; coverage varies by area."
         }
     },
     "chart": {
