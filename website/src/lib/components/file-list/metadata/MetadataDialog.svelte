@@ -30,7 +30,12 @@
     );
     let description: string = $derived(
         node instanceof GPXFile
-            ? (node.metadata.desc ?? '')
+            ? // Single-track files (the app's norm) keep their description on the
+              // track, so it survives adventure export; multi-track files fall back
+              // to file-level metadata.
+              node.trk.length === 1
+                ? (node.trk[0].desc ?? '')
+                : (node.metadata.desc ?? '')
             : node instanceof Track
               ? (node.desc ?? '')
               : ''
@@ -56,9 +61,13 @@
                 fileActionManager.applyToFile(item.getFileId(), (file) => {
                     if (item instanceof ListFileItem && node instanceof GPXFile) {
                         file.metadata.name = name;
-                        file.metadata.desc = description;
                         if (file.trk.length === 1) {
+                            // Store name and description on the track so they survive
+                            // adventure export (which only carries <trk>-level fields).
                             file.trk[0].name = name;
+                            file.trk[0].desc = description;
+                        } else {
+                            file.metadata.desc = description;
                         }
                     } else if (item instanceof ListTrackItem && node instanceof Track) {
                         file.trk[item.getTrackIndex()].name = name;

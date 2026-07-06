@@ -9,7 +9,8 @@
     // while that layer is on, and disappears when it is toggled off.
     const { currentOverlays } = settings;
 
-    let collapsed = $state(false);
+    // Collapsed by default: the offroad grading legend starts folded away.
+    let collapsed = $state(true);
 
     const c = OFFROAD_COLORS;
 

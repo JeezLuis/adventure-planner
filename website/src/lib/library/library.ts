@@ -65,6 +65,13 @@ export type Adventure = {
     startDate?: string;
     /** Render date tags as dd/mm/yyyy instead of dd/mm. */
     showYear?: boolean;
+    /**
+     * The adventure's planning document as Markdown (notes, checklists, tables).
+     * Authored in the planning view and serialized to standard `<metadata><desc>`
+     * on adventure export, so it round-trips and stays readable in other apps.
+     * Distinct from {@link Adventure.description}, which stays app-private in `ap:data`.
+     */
+    planDoc?: string;
 };
 
 /** Sorts expeditions or adventures by their manual position. */
@@ -375,7 +382,9 @@ export async function renameAdventure(id: string, name: string): Promise<void> {
 /** Updates the editable metadata of an adventure (see LibraryMetadataDialog). */
 export async function updateAdventure(
     id: string,
-    changes: Pick<Adventure, 'name' | 'description' | 'numbering' | 'startDate' | 'showYear'>
+    changes: Partial<
+        Pick<Adventure, 'name' | 'description' | 'numbering' | 'startDate' | 'showYear' | 'planDoc'>
+    >
 ): Promise<void> {
     await db.adventures.update(id, changes);
 }

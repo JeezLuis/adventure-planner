@@ -36,6 +36,7 @@
     </span>
     <div class="w-full flex flex-row items-center gap-1 p-1 pt-0.5">
         <ButtonWithTooltip
+            side="bottom"
             variant="ghost"
             size="sm"
             class="grow gap-1 h-7 px-1.5 text-xs {libraryIsEmpty
@@ -48,6 +49,7 @@
             {i18n._('library.new_expedition')}
         </ButtonWithTooltip>
         <ButtonWithTooltip
+            side="bottom"
             variant="ghost"
             size="sm"
             class="grow gap-1 h-7 px-1.5 text-xs"
@@ -64,6 +66,7 @@
             {i18n._('library.new_adventure')}
         </ButtonWithTooltip>
         <ButtonWithTooltip
+            side="bottom"
             variant="ghost"
             size="sm"
             class="grow gap-1 h-7 px-1.5 text-xs"

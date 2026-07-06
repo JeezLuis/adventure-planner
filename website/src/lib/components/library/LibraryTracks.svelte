@@ -63,16 +63,16 @@
             : null
     );
 
-    /** Description of the single selected library item, when it has one. */
+    /**
+     * Description of the single selected library item, when it has one. Only for
+     * expeditions here: an adventure's description is shown in the planning view
+     * (underneath the tracks total), not in this pane.
+     */
     let description = $derived.by(() => {
-        if ($librarySelection.length !== 1) {
+        if ($librarySelection.length !== 1 || $librarySelection[0].kind !== 'expedition') {
             return undefined;
         }
-        const item = $librarySelection[0];
-        const found =
-            item.kind === 'adventure'
-                ? $adventures.find((a) => a.id === item.id)
-                : $expeditions.find((e) => e.id === item.id);
+        const found = $expeditions.find((e) => e.id === $librarySelection[0].id);
         return found?.description;
     });
 

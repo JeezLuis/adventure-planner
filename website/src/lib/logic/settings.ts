@@ -297,8 +297,12 @@ export const settings = {
     ),
     directionMarkers: new Setting('directionMarkers', false),
     distanceMarkers: new Setting('distanceMarkers', false),
-    /** Whether alternative tracks are drawn on the map (the eye toggle in the track pane header). */
-    showAlternativesOnMap: new Setting('showAlternativesOnMap', true),
+    /**
+     * Whether alternative tracks are shown (the eye toggle in the track pane header
+     * and in the planning view's track list). Hidden by default: only the official
+     * traces show until the user opts in to see the alternatives.
+     */
+    showAlternativesOnMap: new Setting('showAlternativesOnMap', false),
     fileOrder: new Setting<string[]>('fileOrder', []),
     defaultOpacity: new Setting('defaultOpacity', 0.7),
     defaultWidth: new Setting('defaultWidth', browser && window.innerWidth < 600 ? 8 : 5),
