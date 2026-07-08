@@ -157,7 +157,25 @@ function getLayerValidator(allowed: Record<string, any>, fallback: string) {
             : fallback;
 }
 
-function filterLayerTree(t: LayerTreeType, allowed: LayerTreeType | undefined): LayerTreeType {
+/**
+ * Filters a persisted layer tree against an `allowed` allow-list, dropping any
+ * keys that are no longer known (except `custom-`/`extension-` layers).
+ *
+ * When a key is present in the allow-list but absent from the stored value
+ * (typically a newly shipped overlay a returning user has never seen), the
+ * behaviour depends on `fillWithFalse`:
+ * - `false` (default): fill with the allow-list's own leaf value. Correct for
+ *   "membership" trees such as `selectedOverlayTree`, where a new overlay should
+ *   automatically appear in the quick picker.
+ * - `true`: fill with `false`. Correct for "is-it-enabled" trees such as
+ *   `currentOverlays`/`previousOverlays`, so a newly shipped overlay stays OFF by
+ *   default instead of silently enabling itself for existing users.
+ */
+function filterLayerTree(
+    t: LayerTreeType,
+    allowed: LayerTreeType | undefined,
+    fillWithFalse = false
+): LayerTreeType {
     const filtered: LayerTreeType = {};
     if (allowed) {
         Object.entries(allowed).forEach(([key, value]) => {
@@ -167,9 +185,15 @@ function filterLayerTree(t: LayerTreeType, allowed: LayerTreeType | undefined): 
                 } else if (typeof value === 'object') {
                     filtered[key] = filterLayerTree(
                         typeof t[key] === 'object' ? t[key] : {},
-                        value
+                        value,
+                        fillWithFalse
                     );
                 }
+            } else if (fillWithFalse) {
+                // Present in the allow-list but missing from the stored value:
+                // default it OFF rather than inheriting the allow-list value.
+                filtered[key] =
+                    typeof value === 'boolean' ? false : filterLayerTree({}, value, true);
             } else {
                 filtered[key] = value;
             }
@@ -189,8 +213,8 @@ function filterLayerTree(t: LayerTreeType, allowed: LayerTreeType | undefined): 
     return filtered;
 }
 
-function getLayerTreeValidator(allowed: LayerTreeType) {
-    return (value: LayerTreeType) => filterLayerTree(value, allowed);
+export function getLayerTreeValidator(allowed: LayerTreeType, fillWithFalse = false) {
+    return (value: LayerTreeType) => filterLayerTree(value, allowed, fillWithFalse);
 }
 
 type DistanceUnits = 'metric' | 'imperial' | 'nautical';
@@ -274,12 +298,14 @@ export const settings = {
     currentOverlays: new SettingInitOnFirstRead(
         'currentOverlays',
         defaultOverlays,
-        getLayerTreeValidator(defaultOverlayTree)
+        // fillWithFalse: a newly shipped overlay stays OFF for returning users
+        // instead of inheriting the allow-list's `true`.
+        getLayerTreeValidator(defaultOverlayTree, true)
     ),
     previousOverlays: new Setting(
         'previousOverlays',
         defaultOverlays,
-        getLayerTreeValidator(defaultOverlayTree)
+        getLayerTreeValidator(defaultOverlayTree, true)
     ),
     selectedOverlayTree: new Setting(
         'selectedOverlayTree',

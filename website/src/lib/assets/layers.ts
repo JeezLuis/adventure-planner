@@ -345,19 +345,140 @@ export function buildSkiOverlay(): StyleSpecification {
 }
 
 /**
- * Built-in overlay catalog. Ships the DMD-style "Offroad" grading layer and a
- * "Ski resorts" piste/lift layer; further overlays may be added at runtime as
- * user-defined custom layers or extension-registered layers.
+ * Vector tile source feeding the national/natural parks overlay: OpenFreeMap's
+ * free public server (https://openfreemap.org/), which serves the unmodified
+ * OpenMapTiles schema. Its `park` layer carries OSM protected/natural areas
+ * (`boundary=national_park`, `boundary=protected_area`, `leisure=nature_reserve`)
+ * as polygons - something the Shortbread schema behind the offroad overlay does
+ * not expose, and which our MapTiler basemaps only render as part of a full
+ * style. OpenFreeMap needs no API key and imposes no usage limits.
+ *
+ * This is a community endpoint with no uptime SLA (same tradeoff as the offroad
+ * and ski overlays). To graduate to self-hosted tiles, generate the same
+ * OpenMapTiles schema as static PMTiles and swap this one URL - the style below
+ * is unchanged.
+ */
+export const PARKS_TILEJSON_URL = 'https://tiles.openfreemap.org/planet';
+
+/**
+ * Font stack for the park name labels. Both fonts are served by the MapTiler
+ * glyph endpoint that the basemaps already use, so labels render regardless of
+ * which of the three basemaps is active.
+ */
+const PARKS_LABEL_FONT = ['Roboto Medium', 'Noto Sans Regular'];
+
+/**
+ * Marks a layer whose opacity must stay fixed rather than follow the per-overlay
+ * opacity slider (see `StyleManager.updateOverlays`). Used to keep the park
+ * outlines crisp so adjacent parks remain visually separated even when the fill
+ * is dialed down.
+ */
+export const FIXED_OPACITY_METADATA = 'overlay:fixed-opacity';
+
+/**
+ * The "National & natural parks" overlay: OpenMapTiles' `park` layer shaded as a
+ * translucent green fill, a crisp darker outline, and the park names. Useful when
+ * planning an offroad adventure, since driving offroad is typically restricted or
+ * forbidden inside national parks, nature reserves and other protected areas. No
+ * `class` filter is applied, so every protected/natural area is shown, not just
+ * national parks.
+ *
+ * Only the fill opacity follows the per-overlay opacity setting (injected at
+ * runtime by `StyleManager.updateOverlays`). The outline is pinned opaque (via
+ * {@link FIXED_OPACITY_METADATA}) so neighbouring parks stay distinguishable, and
+ * the labels - a `symbol` layer, untouched by the opacity injection - stay
+ * readable at any fill opacity. Labels come from the `park` layer's dedicated
+ * point features (filtered to `Point` geometry to avoid duplicating a label at
+ * each polygon centroid) and are prioritised by the OSM importance `rank`.
+ */
+export function buildParksOverlay(): StyleSpecification {
+    return {
+        version: 8,
+        sources: {
+            // Distinct source id (not `openmaptiles`/`maptiler_planet`) so it can
+            // never collide with a basemap's own vector source at runtime.
+            parks: {
+                type: 'vector',
+                url: PARKS_TILEJSON_URL,
+                attribution:
+                    '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; ' +
+                    '<a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a>, data from ' +
+                    '<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+            },
+        },
+        layers: [
+            {
+                id: 'parks-fill',
+                type: 'fill',
+                source: 'parks',
+                'source-layer': 'park',
+                paint: { 'fill-color': '#2f9e44' },
+            },
+            {
+                id: 'parks-outline',
+                type: 'line',
+                source: 'parks',
+                'source-layer': 'park',
+                metadata: { [FIXED_OPACITY_METADATA]: true },
+                paint: {
+                    'line-color': '#14532d',
+                    'line-opacity': 0.9,
+                    'line-width': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        6,
+                        0.8,
+                        12,
+                        1.8,
+                        16,
+                        2.6,
+                    ],
+                },
+            },
+            {
+                id: 'parks-label',
+                type: 'symbol',
+                source: 'parks',
+                'source-layer': 'park',
+                filter: ['==', ['geometry-type'], 'Point'],
+                layout: {
+                    'text-field': ['coalesce', ['get', 'name'], ['get', 'name_int']],
+                    'text-font': PARKS_LABEL_FONT,
+                    'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10, 12, 13, 16, 15],
+                    'text-max-width': 8,
+                    'text-padding': 4,
+                    'text-optional': true,
+                    'symbol-sort-key': ['coalesce', ['to-number', ['get', 'rank']], 999],
+                },
+                paint: {
+                    'text-color': '#14532d',
+                    'text-halo-color': 'rgba(255,255,255,0.9)',
+                    'text-halo-width': 1.4,
+                    'text-halo-blur': 0.4,
+                },
+            },
+        ],
+    };
+}
+
+/**
+ * Built-in overlay catalog. Ships the DMD-style "Offroad" grading layer, a
+ * "Ski resorts" piste/lift layer, and a "National & natural parks" protected-area
+ * layer; further overlays may be added at runtime as user-defined custom layers
+ * or extension-registered layers.
  */
 export const overlays: { [key: string]: string | StyleSpecification } = {
     offroad: buildOffroadOverlay(),
     ski: buildSkiOverlay(),
+    parks: buildParksOverlay(),
 };
 
 /** Default opacity per overlay id. */
 export const defaultOpacities: { [key: string]: number } = {
     offroad: 0.9,
     ski: 0.9,
+    parks: 0.4, // lower than the others: a fill covers large areas
 };
 
 /**
@@ -380,17 +501,19 @@ export const overlayTree: LayerTreeType = {
     overlays: {
         offroad: true,
         ski: true,
+        parks: true,
     },
 };
 
 /** Basemap selected on first launch. */
 export const defaultBasemap = 'outdoor';
 
-/** Overlays enabled on first launch: none (both are available but off by default). */
+/** Overlays enabled on first launch: none (all are available but off by default). */
 export const defaultOverlays: LayerTreeType = {
     overlays: {
         offroad: false,
         ski: false,
+        parks: false,
     },
 };
 
@@ -408,6 +531,7 @@ export const defaultOverlayTree: LayerTreeType = {
     overlays: {
         offroad: true,
         ski: true,
+        parks: true,
     },
 };
 
