@@ -8,6 +8,7 @@
     import CreateLibraryItemDialog from './CreateLibraryItemDialog.svelte';
     import LibraryMetadataDialog from './LibraryMetadataDialog.svelte';
     import BufferDaysDialog from './BufferDaysDialog.svelte';
+    import DisableAdvancedModeDialog from './DisableAdvancedModeDialog.svelte';
     import { adventures, expeditions, moveExpedition, sortByOrder } from '$lib/library/library';
     import { getLibraryDrag, isExpeditionDrag } from './dnd';
     import { i18n } from '$lib/i18n.svelte';
@@ -81,3 +82,4 @@
 <CreateLibraryItemDialog />
 <LibraryMetadataDialog />
 <BufferDaysDialog />
+<DisableAdvancedModeDialog />

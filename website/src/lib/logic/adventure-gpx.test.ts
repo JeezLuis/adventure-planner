@@ -33,6 +33,15 @@ describe('adventure payload codec', () => {
         });
     });
 
+    it('round-trips the advanced-mode flag when on, and omits it when off', () => {
+        const on = decodeAdventurePayload(encodeAdventurePayload({ advancedMode: true }, []));
+        expect(on?.adventure.advancedMode).toBe(true);
+
+        const offEncoded = encodeAdventurePayload({ advancedMode: false }, []);
+        expect(JSON.parse(offEncoded).adventure.advancedMode).toBeUndefined();
+        expect(decodeAdventurePayload(offEncoded)?.adventure.advancedMode).toBeUndefined();
+    });
+
     it('omits default/empty fields so the payload stays small', () => {
         const encoded = encodeAdventurePayload({ numbering: 'none', showYear: false }, [
             { bufferDays: 0, alternative: false },

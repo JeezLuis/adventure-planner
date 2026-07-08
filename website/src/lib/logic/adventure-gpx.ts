@@ -25,7 +25,10 @@ export type TrackMeta = {
 };
 
 /** The adventure-level metadata that has no native GPX representation. */
-export type AdventureMeta = Pick<Adventure, 'numbering' | 'startDate' | 'showYear' | 'description'>;
+export type AdventureMeta = Pick<
+    Adventure,
+    'numbering' | 'startDate' | 'showYear' | 'description' | 'advancedMode'
+>;
 
 /** The JSON payload embedded in an exported adventure GPX. */
 export type AdventurePayload = {
@@ -53,6 +56,9 @@ export function encodeAdventurePayload(adventure: AdventureMeta, tracks: TrackMe
     }
     if (adventure.description) {
         adv.description = adventure.description;
+    }
+    if (adventure.advancedMode) {
+        adv.advancedMode = true;
     }
     const payload: AdventurePayload = {
         v: PAYLOAD_VERSION,
@@ -122,6 +128,9 @@ function sanitizeAdventureMeta(value: unknown): AdventureMeta {
     }
     if (typeof obj.description === 'string') {
         meta.description = obj.description;
+    }
+    if (typeof obj.advancedMode === 'boolean') {
+        meta.advancedMode = obj.advancedMode;
     }
     return meta;
 }

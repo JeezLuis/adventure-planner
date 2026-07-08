@@ -541,9 +541,15 @@
         "buffer_days_help": "Días adicionales antes de empezar la siguiente ruta: un día de descanso, margen para un cruce de frontera... Las fechas de las rutas siguientes se retrasan esa cantidad de días.",
         "buffer_days_label": "Días",
         "alternative": "Ruta alternativa",
-        "alternative_title": "Ruta alternativa: no cuenta para la numeración",
+        "alternative_title": "Ruta alternativa",
         "hide_alternatives": "Ocultar las rutas alternativas en el mapa",
-        "show_alternatives": "Mostrar las rutas alternativas en el mapa"
+        "show_alternatives": "Mostrar las rutas alternativas en el mapa",
+        "advanced_mode": "Modo avanzado",
+        "advanced_badge": "AV",
+        "advanced_badge_title": "El modo avanzado está activado",
+        "disable_advanced_confirm_title": "¿Desactivar el modo avanzado?",
+        "disable_advanced_confirm_message": "Desactivar el modo avanzado de \"{name}\" elimina de forma permanente su numeración de tracks, las fechas del viaje, las marcas de rutas alternativas y el documento de planificación, incluido todo lo definido en sus {count} track(s). Esta acción no se puede deshacer. Los tracks en sí se conservan.",
+        "disable_advanced": "Desactivar el modo avanzado"
     },
     "planning": {
         "map": "Mapa",

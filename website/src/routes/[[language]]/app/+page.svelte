@@ -23,7 +23,7 @@
     import { gpxStatistics, hoveredPoint, slicedGPXStatistics } from '$lib/logic/statistics';
     import { db } from '$lib/db';
     import { fileStateCollection } from '$lib/logic/file-state';
-    import { selectedAdventureId } from '$lib/library/library';
+    import { selectedAdventureId, selectedAdventureIsAdvanced } from '$lib/library/library';
     import { currentTool } from '$lib/components/toolbar/tools';
     import { planningMode } from '$lib/logic/planning';
     import MapPlanToggle from '$lib/components/planning/MapPlanToggle.svelte';
@@ -59,8 +59,19 @@
         }
     });
 
+    // Planning is an advanced-mode feature: dropping the selected adventure out
+    // of advanced mode (e.g. turning advanced mode off while its plan is open)
+    // returns to the map, so the plan view can never outlive advanced mode.
+    $effect(() => {
+        if (!$selectedAdventureIsAdvanced && $planningMode) {
+            $planningMode = false;
+        }
+    });
+
     // The planning view fully replaces the map, so its overlays and controls hide.
-    let planningActive = $derived($selectedAdventureId !== null && $planningMode);
+    let planningActive = $derived(
+        $selectedAdventureId !== null && $selectedAdventureIsAdvanced && $planningMode
+    );
 
     onMount(async () => {
         settings.connectToDatabase(db);
@@ -143,9 +154,10 @@
     />
     <div class="flex flex-col grow h-full min-w-0">
         <div class="grow relative" class:planning-active={planningActive}>
-            {#if $selectedAdventureId !== null}
-                <!-- Segmented Map | Plan toggle over the map. Only an adventure has a
-                     plan, so it appears only when exactly one adventure is selected. -->
+            {#if $selectedAdventureId !== null && $selectedAdventureIsAdvanced}
+                <!-- Segmented Map | Plan toggle over the map. Planning is an
+                     advanced-mode feature, so it appears only when the single
+                     selected adventure has advanced mode on. -->
                 <div class="absolute top-2 left-1/2 -translate-x-1/2 z-40">
                     <MapPlanToggle />
                 </div>
@@ -185,7 +197,7 @@
                     {/if}
                 </button>
             {/if}
-            {#if $selectedAdventureId !== null && $planningMode}
+            {#if $selectedAdventureId !== null && $selectedAdventureIsAdvanced && $planningMode}
                 <div class="absolute inset-0 z-30 bg-background">
                     <PlanningView adventureId={$selectedAdventureId} />
                 </div>

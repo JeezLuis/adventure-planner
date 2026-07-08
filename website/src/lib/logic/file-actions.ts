@@ -41,6 +41,7 @@ import {
     deleteAdventure,
     deleteExpeditionCascade,
     expeditions,
+    hasAdvancedData,
     queuePlacement,
     selectLibraryItem,
     trackPlacements,
@@ -277,6 +278,10 @@ export async function importAdventures(
         // has no dependency on the tracks created below. Per-track metadata is
         // handled through queuePlacement instead (see below).
         if (payload) {
+            // Auto-enable advanced mode when the file carries advanced data, so
+            // numbering/alternates/plan never land hidden in a simple adventure.
+            // Honor an explicit flag from our own exports; derive it otherwise
+            // (foreign files, or older exports predating the flag).
             await updateAdventure(adventureId, {
                 name,
                 description: payload.adventure.description,
@@ -284,9 +289,17 @@ export async function importAdventures(
                 startDate: payload.adventure.startDate,
                 showYear: payload.adventure.showYear,
                 planDoc,
+                advancedMode:
+                    payload.adventure.advancedMode ??
+                    hasAdvancedData(
+                        { numbering: payload.adventure.numbering, planDoc },
+                        payload.tracks
+                    ),
             });
         } else if (planDoc) {
-            await updateAdventure(adventureId, { name, planDoc });
+            // A plain GPX with a description becomes an adventure with a plan
+            // document, which is advanced-only content: unlock it.
+            await updateAdventure(adventureId, { name, planDoc, advancedMode: true });
         }
         perFile.push({ file, adventureId, payload });
     }

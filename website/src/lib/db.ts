@@ -15,6 +15,9 @@ enablePatches();
  * - v1 (upstream): fileids/files/patches/settings + Overpass POI caches.
  * - v2: adds the library tables (expeditions, adventures, trackPlacements)
  *   and drops the Overpass caches (the POI feature was removed).
+ * - v3: backfills the per-adventure `advancedMode` flag (no schema change),
+ *   turning it on for adventures that already carry advanced data so the
+ *   advanced features keep showing after the "simple by default" change.
  */
 export class Database extends Dexie {
     fileids!: Dexie.Table<string, string>;
@@ -43,6 +46,30 @@ export class Database extends Dexie {
             trackPlacements: '&fileId',
             overpasstiles: null,
             overpassdata: null,
+        });
+        // Backfill only: no indexed field changes, so the stores carry forward
+        // unchanged. Runs once, inside the upgrade transaction, before any
+        // liveQuery resolves, so the flag is already correct on first render.
+        this.version(3).upgrade(async (tx) => {
+            const placements = await tx.table('trackPlacements').toArray();
+            const adventuresWithTrackData = new Set<string>();
+            for (const placement of placements) {
+                if (placement.alternative === true || (placement.bufferDays ?? 0) > 0) {
+                    adventuresWithTrackData.add(placement.adventureId);
+                }
+            }
+            await tx
+                .table('adventures')
+                .toCollection()
+                .modify((adventure) => {
+                    if (
+                        (adventure.numbering && adventure.numbering !== 'none') ||
+                        (adventure.planDoc && adventure.planDoc.trim().length > 0) ||
+                        adventuresWithTrackData.has(adventure.id)
+                    ) {
+                        adventure.advancedMode = true;
+                    }
+                });
         });
     }
 }

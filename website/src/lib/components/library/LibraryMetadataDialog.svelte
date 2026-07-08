@@ -1,32 +1,27 @@
 <script lang="ts">
     import * as Dialog from '$lib/components/ui/dialog';
-    import * as Select from '$lib/components/ui/select';
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
     import { Textarea } from '$lib/components/ui/textarea';
-    import { Checkbox } from '$lib/components/ui/checkbox';
     import {
         adventures,
         expeditions,
         pendingMetadataEdit,
         updateAdventure,
         updateExpedition,
-        type TrackNumbering,
     } from '$lib/library/library';
     import { i18n } from '$lib/i18n.svelte';
 
     /**
      * Edits the metadata of an adventure or expedition (see
-     * {@link pendingMetadataEdit}): name and description for both, plus the
-     * track numbering for adventures. The 'date' numbering needs the start
-     * date of the trip and can optionally show the year in the tags.
+     * {@link pendingMetadataEdit}): its name and description. Track numbering /
+     * trip dates are edited in place from the track pane header for advanced
+     * adventures (see NumberingControl), not here, so simple adventures keep a
+     * minimal dialog.
      */
     let name = $state('');
     let description = $state('');
-    let numbering = $state<TrackNumbering>('none');
-    let startDate = $state('');
-    let showYear = $state(false);
 
     let isAdventure = $derived($pendingMetadataEdit?.kind === 'adventure');
 
@@ -45,17 +40,11 @@
             if (item) {
                 name = item.name;
                 description = item.description ?? '';
-                numbering = ('numbering' in item ? item.numbering : undefined) ?? 'none';
-                startDate = ('startDate' in item ? item.startDate : undefined) ?? '';
-                showYear = ('showYear' in item ? item.showYear : undefined) ?? false;
             }
         }
     });
 
-    let valid = $derived(
-        name.trim().length > 0 &&
-            (!isAdventure || numbering !== 'date' || /^\d{4}-\d{2}-\d{2}$/.test(startDate))
-    );
+    let valid = $derived(name.trim().length > 0);
 
     async function confirm() {
         const editing = $pendingMetadataEdit;
@@ -67,12 +56,7 @@
             description: description.trim().length > 0 ? description.trim() : undefined,
         };
         if (editing.kind === 'adventure') {
-            await updateAdventure(editing.id, {
-                ...common,
-                numbering,
-                startDate: numbering === 'date' ? startDate : undefined,
-                showYear: numbering === 'date' ? showYear : undefined,
-            });
+            await updateAdventure(editing.id, common);
         } else {
             await updateExpedition(editing.id, common);
         }
@@ -107,38 +91,6 @@
             {i18n._('library.description_label')}
             <Textarea bind:value={description} class="min-h-16 text-sm" />
         </Label>
-        {#if isAdventure}
-            <Label class="flex flex-col items-start gap-1.5">
-                {i18n._('library.numbering')}
-                <Select.Root type="single" bind:value={numbering}>
-                    <Select.Trigger class="w-full" size="sm">
-                        {i18n._(`library.numbering_${numbering}`)}
-                    </Select.Trigger>
-                    <Select.Content>
-                        <Select.Item value="none">{i18n._('library.numbering_none')}</Select.Item>
-                        <Select.Item value="numbers">
-                            {i18n._('library.numbering_numbers')}
-                        </Select.Item>
-                        <Select.Item value="date">{i18n._('library.numbering_date')}</Select.Item>
-                    </Select.Content>
-                </Select.Root>
-            </Label>
-            <p class="text-xs text-muted-foreground">
-                {i18n._(
-                    numbering === 'date' ? 'library.numbering_date_help' : 'library.numbering_help'
-                )}
-            </p>
-            {#if numbering === 'date'}
-                <Label class="flex flex-col items-start gap-1.5">
-                    {i18n._('library.start_date')}
-                    <Input type="date" bind:value={startDate} class="w-fit" />
-                </Label>
-                <Label class="flex flex-row items-center gap-1.5">
-                    <Checkbox bind:checked={showYear} />
-                    {i18n._('library.show_year')}
-                </Label>
-            {/if}
-        {/if}
         <Dialog.Footer>
             <Button variant="outline" onclick={() => pendingMetadataEdit.set(null)}>
                 {i18n._('library.cancel')}
