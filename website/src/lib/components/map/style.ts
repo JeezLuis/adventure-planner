@@ -159,7 +159,14 @@ export class StyleManager {
 
                         for (let layer of overlayStyle.layers ?? []) {
                             if (!map_.getLayer(layer.id)) {
-                                if (opacity !== undefined) {
+                                // Some overlay layers (e.g. park outlines) pin their
+                                // own opacity so they stay crisp regardless of the
+                                // per-overlay opacity slider.
+                                const fixedOpacity =
+                                    (layer.metadata as Record<string, unknown> | undefined)?.[
+                                        'overlay:fixed-opacity'
+                                    ] === true;
+                                if (opacity !== undefined && !fixedOpacity) {
                                     if (layer.type === 'raster') {
                                         if (!layer.paint) {
                                             layer.paint = {};
@@ -175,6 +182,11 @@ export class StyleManager {
                                             layer.paint = {};
                                         }
                                         layer.paint['line-opacity'] = opacity;
+                                    } else if (layer.type === 'fill') {
+                                        if (!layer.paint) {
+                                            layer.paint = {};
+                                        }
+                                        layer.paint['fill-opacity'] = opacity;
                                     }
                                 }
                                 map_.addLayer(layer, ANCHOR_LAYER_KEY.overlays);

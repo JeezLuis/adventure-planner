@@ -183,4 +183,38 @@ describe('parseGPX -> buildGPX -> parseGPX round trip', () => {
 
         expect(reparsed.metadata.extensions?.['ap:data']).toBe(payload);
     });
+
+    it('round-trips multi-line markdown planning docs in metadata desc and track desc', () => {
+        // Adventure Planner stores planning content as Markdown in standard GPX
+        // text fields: the adventure plan in <metadata><desc> and each track's
+        // description in its <trk><desc>. Multi-line content (headings, task lists,
+        // tables, blank lines) and XML-special characters (&, <, >) must survive the
+        // serialize/parse cycle unchanged, so the exported GPX is faithful and
+        // readable elsewhere.
+        const adventurePlan = [
+            '# Border pass',
+            '',
+            'Carry passport & V5C. Budget < 50 EUR > fine.',
+            '',
+            '## Packing',
+            '- [ ] Tent',
+            '- [x] Stove',
+            '',
+            '| Stop | km |',
+            '| --- | --- |',
+            '| Faro | 210 |',
+        ].join('\n');
+        const trackDesc = ['Coastal stage from Faro to Tavira.', '', 'Watch the sandy section < KM 40.'].join(
+            '\n'
+        );
+
+        const file = parseGPX(readFixture('with_tracks'));
+        file.metadata.desc = adventurePlan;
+        file.trk[0].desc = trackDesc;
+
+        const reparsed = parseGPX(buildGPX(file, []));
+
+        expect(reparsed.metadata.desc).toBe(adventurePlan);
+        expect(reparsed.trk[0].desc).toBe(trackDesc);
+    });
 });

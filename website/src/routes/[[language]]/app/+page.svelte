@@ -23,8 +23,11 @@
     import { gpxStatistics, hoveredPoint, slicedGPXStatistics } from '$lib/logic/statistics';
     import { db } from '$lib/db';
     import { fileStateCollection } from '$lib/logic/file-state';
-    import { selectedAdventureId } from '$lib/library/library';
+    import { selectedAdventureId, selectedAdventureIsAdvanced } from '$lib/library/library';
     import { currentTool } from '$lib/components/toolbar/tools';
+    import { planningMode } from '$lib/logic/planning';
+    import MapPlanToggle from '$lib/components/planning/MapPlanToggle.svelte';
+    import PlanningView from '$lib/components/planning/PlanningView.svelte';
 
     const {
         elevationProfile,
@@ -47,6 +50,28 @@
             $currentTool = null;
         }
     });
+
+    // Planning is scoped to a single selected adventure; leaving that selection
+    // returns to the map so the planning view never lingers over a stale target.
+    $effect(() => {
+        if ($selectedAdventureId === null && $planningMode) {
+            $planningMode = false;
+        }
+    });
+
+    // Planning is an advanced-mode feature: dropping the selected adventure out
+    // of advanced mode (e.g. turning advanced mode off while its plan is open)
+    // returns to the map, so the plan view can never outlive advanced mode.
+    $effect(() => {
+        if (!$selectedAdventureIsAdvanced && $planningMode) {
+            $planningMode = false;
+        }
+    });
+
+    // The planning view fully replaces the map, so its overlays and controls hide.
+    let planningActive = $derived(
+        $selectedAdventureId !== null && $selectedAdventureIsAdvanced && $planningMode
+    );
 
     onMount(async () => {
         settings.connectToDatabase(db);
@@ -128,8 +153,16 @@
         maxAfter={450}
     />
     <div class="flex flex-col grow h-full min-w-0">
-        <div class="grow relative">
-            {#if $selectedAdventureId !== null}
+        <div class="grow relative" class:planning-active={planningActive}>
+            {#if $selectedAdventureId !== null && $selectedAdventureIsAdvanced}
+                <!-- Segmented Map | Plan toggle over the map. Planning is an
+                     advanced-mode feature, so it appears only when the single
+                     selected adventure has advanced mode on. -->
+                <div class="absolute top-2 left-1/2 -translate-x-1/2 z-40">
+                    <MapPlanToggle />
+                </div>
+            {/if}
+            {#if $selectedAdventureId !== null && !$planningMode}
                 <!-- Floating tool bar hovering over the map, vertically centered at its
                      left edge. Editing tools only make sense inside an adventure: with
                      anything else selected the whole bar stays hidden. -->
@@ -139,27 +172,38 @@
                     <Toolbar />
                 </div>
             {/if}
+            <!-- The map stays mounted underneath (it is expensive to recreate); the
+                 planning view simply overlays it when the user switches to "Plan". -->
             <Map class="h-full" />
-            <StreetViewControl />
-            <LayerControl />
-            <OffroadLegend />
+            {#if !planningActive}
+                <StreetViewControl />
+                <LayerControl />
+                <OffroadLegend />
+            {/if}
             <GPXLayers />
             <CoordinatesPopup />
             <Toaster richColors />
-            <!-- Collapse/expand toggle for the track-info panel below. -->
-            <button
-                class="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 bg-background rounded-md shadow-md p-0.5 border"
-                aria-label={i18n._($bottomPanelVisible ? 'menu.collapse' : 'menu.expand')}
-                onclick={() => ($bottomPanelVisible = !$bottomPanelVisible)}
-            >
-                {#if $bottomPanelVisible}
-                    <ChevronDown size="18" />
-                {:else}
-                    <ChevronUp size="18" />
-                {/if}
-            </button>
+            {#if $selectedAdventureId !== null && !$planningMode}
+                <!-- Collapse/expand toggle for the track-info panel below. -->
+                <button
+                    class="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 bg-background rounded-md shadow-md p-0.5 border"
+                    aria-label={i18n._($bottomPanelVisible ? 'menu.collapse' : 'menu.expand')}
+                    onclick={() => ($bottomPanelVisible = !$bottomPanelVisible)}
+                >
+                    {#if $bottomPanelVisible}
+                        <ChevronDown size="18" />
+                    {:else}
+                        <ChevronUp size="18" />
+                    {/if}
+                </button>
+            {/if}
+            {#if $selectedAdventureId !== null && $selectedAdventureIsAdvanced && $planningMode}
+                <div class="absolute inset-0 z-30 bg-background">
+                    <PlanningView adventureId={$selectedAdventureId} />
+                </div>
+            {/if}
         </div>
-        {#if $bottomPanelVisible}
+        {#if $bottomPanelVisible && !$planningMode}
             {#if $elevationProfile}
                 <Resizer
                     orientation="row"
@@ -201,5 +245,11 @@
         @apply absolute;
         @apply right-2;
         --offset: 50px !important;
+    }
+
+    /* In planning mode the map is fully covered, so hide MapLibre's own controls
+       (zoom, geolocate, pitch, geocoder) that otherwise float above the overlay. */
+    .planning-active :global(.maplibregl-control-container) {
+        display: none;
     }
 </style>

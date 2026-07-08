@@ -65,6 +65,21 @@ export type Adventure = {
     startDate?: string;
     /** Render date tags as dd/mm/yyyy instead of dd/mm. */
     showYear?: boolean;
+    /**
+     * The adventure's planning document as Markdown (notes, checklists, tables).
+     * Authored in the planning view and serialized to standard `<metadata><desc>`
+     * on adventure export, so it round-trips and stays readable in other apps.
+     * Distinct from {@link Adventure.description}, which stays app-private in `ap:data`.
+     */
+    planDoc?: string;
+    /**
+     * Advanced-mode gate. Missing/false = SIMPLE: track numbering, trip dates,
+     * alternate tracks and the plan view are all hidden, keeping the adventure
+     * approachable. Turning it on unlocks those features; turning it off again
+     * permanently clears their data (see {@link disableAdvancedMode}). A simple
+     * adventure must never hold advanced data, so nothing renders unexpectedly.
+     */
+    advancedMode?: boolean;
 };
 
 /** Sorts expeditions or adventures by their manual position. */
@@ -120,6 +135,24 @@ export type TrackPlacement = {
 };
 
 /**
+ * Whether an adventure already carries advanced-mode data: a numbering, a plan
+ * document, or any track marked as an alternative or given buffer days. Used to
+ * decide the advanced-mode flag when it is not set explicitly (the backfill
+ * migration for libraries predating the flag, and adventure import), so that
+ * existing power-user data is never hidden. Pure and side-effect free.
+ */
+export function hasAdvancedData(
+    adventure: Pick<Adventure, 'numbering' | 'planDoc'>,
+    placements: Pick<TrackPlacement, 'alternative' | 'bufferDays'>[]
+): boolean {
+    return (
+        (adventure.numbering !== undefined && adventure.numbering !== 'none') ||
+        (adventure.planDoc !== undefined && adventure.planDoc.trim().length > 0) ||
+        placements.some((p) => p.alternative === true || (p.bufferDays ?? 0) > 0)
+    );
+}
+
+/**
  * One selectable row of the library tree: an adventure or an expedition
  * (standing for everything nested below it).
  */
@@ -171,27 +204,24 @@ export const trackAlternatives = liveStore<Set<string>>(
 );
 
 /**
- * The alternatives whose adventure currently numbers its tracks (the same
- * condition under which trackTags emits tags). The mark is dormant otherwise:
- * kept in the database, but with no badge and no special rendering, so
- * turning the numbering back on restores it without data loss.
+ * The alternatives whose adventure is in advanced mode: the alternate-track
+ * feature is unlocked by advanced mode (independently of numbering), so this is
+ * the set that gets the ALT badge and the dotted/faded map rendering. The mark
+ * is dormant for a simple adventure: kept in the database (until advanced mode
+ * is turned off, which clears it), with no badge and no special rendering.
  */
 export const activeTrackAlternatives: Readable<Set<string>> = derived(
     [adventures, trackPlacements, trackAlternatives],
     ([$adventures, $placements, $alternatives]) => {
-        const numberedAdventures = new Set(
+        const advancedAdventures = new Set(
             $adventures
-                .filter(
-                    (adventure) =>
-                        adventure.numbering === 'numbers' ||
-                        (adventure.numbering === 'date' && adventure.startDate !== undefined)
-                )
+                .filter((adventure) => adventure.advancedMode === true)
                 .map((adventure) => adventure.id)
         );
         const active = new Set<string>();
         $alternatives.forEach((fileId) => {
             const adventureId = $placements.get(fileId);
-            if (adventureId !== undefined && numberedAdventures.has(adventureId)) {
+            if (adventureId !== undefined && advancedAdventures.has(adventureId)) {
                 active.add(fileId);
             }
         });
@@ -212,6 +242,18 @@ export const librarySelection = writable<LibrarySelectionItem[]>([]);
  */
 export const selectedAdventureId: Readable<string | null> = derived(librarySelection, (items) =>
     items.length === 1 && items[0].kind === 'adventure' ? items[0].id : null
+);
+
+/**
+ * Whether the single selected adventure is in advanced mode. Gates the
+ * advanced-only chrome around the map (the plan view toggle in particular), and
+ * lets the app drop out of the plan view when advanced mode is turned off.
+ */
+export const selectedAdventureIsAdvanced: Readable<boolean> = derived(
+    [selectedAdventureId, adventures],
+    ([$selectedAdventureId, $adventures]) =>
+        $selectedAdventureId !== null &&
+        $adventures.find((adventure) => adventure.id === $selectedAdventureId)?.advancedMode === true
 );
 
 /**
@@ -375,9 +417,50 @@ export async function renameAdventure(id: string, name: string): Promise<void> {
 /** Updates the editable metadata of an adventure (see LibraryMetadataDialog). */
 export async function updateAdventure(
     id: string,
-    changes: Pick<Adventure, 'name' | 'description' | 'numbering' | 'startDate' | 'showYear'>
+    changes: Partial<
+        Pick<
+            Adventure,
+            | 'name'
+            | 'description'
+            | 'numbering'
+            | 'startDate'
+            | 'showYear'
+            | 'planDoc'
+            | 'advancedMode'
+        >
+    >
 ): Promise<void> {
     await db.adventures.update(id, changes);
+}
+
+/** Turns advanced mode on for an adventure, unlocking numbering, alternates and the plan view. */
+export async function enableAdvancedMode(id: string): Promise<void> {
+    await db.adventures.update(id, { advancedMode: true });
+}
+
+/**
+ * Turns advanced mode off and permanently clears the adventure's advanced data:
+ * the numbering (and its start date / show-year), the plan document, and the
+ * buffer days and alternative marks of every track in the adventure. This keeps
+ * the invariant that a simple adventure holds no advanced data, so nothing
+ * lingers hidden. The track FILES and their `<trk><desc>` notes are untouched.
+ * The whole clear runs in one transaction so the live stores observe it at once
+ * (no partially-cleared flicker). Placements have no `adventureId` index, so
+ * they are found with a full scan, exactly like {@link deleteAdventure}.
+ */
+export async function disableAdvancedMode(id: string): Promise<void> {
+    await db.transaction('rw', db.adventures, db.trackPlacements, async () => {
+        await db.adventures.update(id, {
+            advancedMode: false,
+            numbering: 'none',
+            startDate: undefined,
+            showYear: undefined,
+            planDoc: undefined,
+        });
+        await db.trackPlacements
+            .filter((p) => p.adventureId === id)
+            .modify({ alternative: false, bufferDays: 0 });
+    });
 }
 
 /** Updates the editable metadata of an expedition (see LibraryMetadataDialog). */
@@ -504,6 +587,13 @@ export const pendingBufferEdit = writable<string | null>(null);
  */
 export const pendingFerryCreation = writable<{ adventureId: string } | null>(null);
 
+/**
+ * The adventure whose advanced mode is being turned off, awaiting confirmation
+ * (see DisableAdvancedModeDialog): confirming permanently clears its advanced
+ * data, so we prompt rather than clear on the spot.
+ */
+export const pendingAdvancedModeDisable = writable<string | null>(null);
+
 /** The tag shown in front of a track name, and the buffer days after that track. */
 export type TrackTag = { label: string; bufferDays: number; alternative?: boolean };
 
@@ -575,6 +665,15 @@ export const trackTags: Readable<Map<string, TrackTag>> = derived(
                         bufferDays,
                     });
                     dayOffset += 1 + bufferDays;
+                });
+            } else if (adventure.advancedMode) {
+                // Advanced but not numbered: alternatives are still marked (the
+                // feature is unlocked by advanced mode, not by numbering), they
+                // just have no stage number or date to stand in for.
+                files.forEach((fileId) => {
+                    if ($alternatives.has(fileId)) {
+                        tags.set(fileId, ALTERNATIVE_TAG);
+                    }
                 });
             }
         });

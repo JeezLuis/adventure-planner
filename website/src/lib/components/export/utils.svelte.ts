@@ -143,6 +143,9 @@ export function exportAdventure(adventureId: string) {
     merged.replaceWaypoints(0, merged.wpt.length - 1, waypoints);
     merged.metadata = {
         name: adventure.name,
+        // The adventure planning doc goes in standard <metadata><desc> (readable in
+        // any GPX app); each track's description rides along in its <trk><desc> via clone.
+        ...(adventure.planDoc?.trim() ? { desc: adventure.planDoc } : {}),
         extensions: { [ADVENTURE_EXT_KEY]: encodeAdventurePayload(adventure, tracksMeta) },
     };
 

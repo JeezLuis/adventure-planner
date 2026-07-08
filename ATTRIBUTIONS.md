@@ -26,6 +26,14 @@ list (with licences resolvable per package) lives in `website/package.json` and
   Data) - terrarium-encoded elevation tiles used for elevation profiles and 3D terrain.
   Contains data from sources including SRTM (NASA/USGS) and other public DEMs; see the
   dataset's attribution notes.
+- **[OpenSnowMap](https://www.opensnowmap.org/)** - pre-rendered piste/lift raster tiles
+  for the optional "Ski resorts" overlay, licensed **CC-BY-SA** (underlying data ©
+  OpenStreetMap contributors, ODbL). Used within the OpenSnowMap tile usage policy.
+- **[OpenFreeMap](https://openfreemap.org/) / [OpenMapTiles](https://www.openmaptiles.org/)** -
+  free public vector tiles (OpenMapTiles schema) feeding the optional "National & natural
+  parks" overlay, which renders the `park` layer (national parks, nature reserves and other
+  protected areas). Data © OpenStreetMap contributors (**ODbL**); OpenMapTiles schema under
+  **CC-BY 4.0**.
 - **[Nominatim](https://nominatim.openstreetmap.org/)** - geocoding for the search box,
   used under the OSMF Nominatim usage policy (data © OpenStreetMap contributors).
 - **[BRouter](https://github.com/abrensch/brouter)** - routing engine (**MIT**). The

@@ -5,9 +5,11 @@
     import { loadFiles } from '$lib/logic/file-actions';
     import {
         adventures,
+        enableAdvancedMode,
         librarySelection,
         moveAdventure,
         orderRelativeTo,
+        pendingAdvancedModeDisable,
         pendingDeletion,
         pendingMetadataEdit,
         renameAdventure,
@@ -135,6 +137,14 @@
                 >
                     <Tent size="14" class="shrink-0 text-muted-foreground" />
                     <span class="truncate">{adventure.name}</span>
+                    {#if adventure.advancedMode}
+                        <span
+                            class="shrink-0 ml-auto rounded bg-accent px-1 text-[10px] font-semibold text-accent-foreground"
+                            title={i18n._('library.advanced_badge_title')}
+                        >
+                            {i18n._('library.advanced_badge')}
+                        </span>
+                    {/if}
                 </button>
             {/if}
         </ContextMenu.Trigger>
@@ -144,6 +154,15 @@
             >
                 {i18n._('library.edit_adventure')}
             </ContextMenu.Item>
+            <ContextMenu.CheckboxItem
+                checked={adventure.advancedMode === true}
+                onCheckedChange={(checked) =>
+                    checked
+                        ? enableAdvancedMode(adventure.id)
+                        : pendingAdvancedModeDisable.set(adventure.id)}
+            >
+                {i18n._('library.advanced_mode')}
+            </ContextMenu.CheckboxItem>
             <ContextMenu.Item onclick={startRename}>{i18n._('library.rename')}</ContextMenu.Item>
             <ContextMenu.Item
                 onclick={() => pendingDeletion.set({ kind: 'adventure', id: adventure.id })}

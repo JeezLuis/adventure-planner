@@ -42,6 +42,7 @@ import {
     deleteAdventure,
     deleteExpeditionCascade,
     expeditions,
+    hasAdvancedData,
     queuePlacement,
     selectLibraryItem,
     trackPlacements,
@@ -302,7 +303,10 @@ function buildSections(file: GPXFile): GPXFile[] {
  * adventure we exported: the export writes exactly one `<trk>` per track, so
  * this restores the same tracks 1:1 - unlike {@link buildSections}, it never
  * splits a single multi-segment track by segment. Each track's name comes from
- * the `<trk>` name the export stamped; waypoints stay on the first section.
+ * the `<trk>` name the export stamped; waypoints stay on the first section. The
+ * merged file's `<metadata><desc>` is the adventure planning doc, not a track's,
+ * so it is dropped here (the caller lifts it onto the adventure); each track's
+ * own description travels in its `<trk><desc>` via clone.
  */
 function splitByTrack(file: GPXFile): GPXFile[] {
     if (file.trk.length === 0) {
@@ -314,6 +318,7 @@ function splitByTrack(file: GPXFile): GPXFile[] {
         newFile.metadata = {
             ...newFile.metadata,
             name: track.name ?? `${file.metadata.name ?? ''} (${index + 1})`,
+            desc: undefined,
         };
         if (index > 0 && newFile.wpt.length > 0) {
             newFile.replaceWaypoints(0, newFile.wpt.length - 1, []);
@@ -349,18 +354,36 @@ export async function importAdventures(
         const name =
             file.metadata.name?.trim() ||
             i18n._('library.imported_adventure', 'Imported adventure');
+        // <metadata><desc> is the adventure planning doc for our own exports, and a
+        // reasonable adventure note for a foreign file; lift it onto the adventure.
+        const planDoc = file.metadata.desc?.trim() || undefined;
         const adventureId = await createAdventure(expeditionId, name);
         // Restore the adventure-level metadata now: the row already exists and
         // has no dependency on the tracks created below. Per-track metadata is
         // handled through queuePlacement instead (see below).
         if (payload) {
+            // Auto-enable advanced mode when the file carries advanced data, so
+            // numbering/alternates/plan never land hidden in a simple adventure.
+            // Honor an explicit flag from our own exports; derive it otherwise
+            // (foreign files, or older exports predating the flag).
             await updateAdventure(adventureId, {
                 name,
                 description: payload.adventure.description,
                 numbering: payload.adventure.numbering,
                 startDate: payload.adventure.startDate,
                 showYear: payload.adventure.showYear,
+                planDoc,
+                advancedMode:
+                    payload.adventure.advancedMode ??
+                    hasAdvancedData(
+                        { numbering: payload.adventure.numbering, planDoc },
+                        payload.tracks
+                    ),
             });
+        } else if (planDoc) {
+            // A plain GPX with a description becomes an adventure with a plan
+            // document, which is advanced-only content: unlock it.
+            await updateAdventure(adventureId, { name, planDoc, advancedMode: true });
         }
         perFile.push({ file, adventureId, payload });
     }

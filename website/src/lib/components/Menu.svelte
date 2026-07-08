@@ -553,12 +553,16 @@
             }
             e.preventDefault();
         } else if ((e.key === 'z' || e.key == 'Z') && (e.metaKey || e.ctrlKey)) {
-            if (e.shiftKey) {
-                fileActionManager.redo();
-            } else {
-                fileActionManager.undo();
+            // In a text field, let the browser handle native text undo/redo (e.g.
+            // typing in a plan note); otherwise undo/redo the app's file actions.
+            if (!targetInput) {
+                if (e.shiftKey) {
+                    fileActionManager.redo();
+                } else {
+                    fileActionManager.undo();
+                }
+                e.preventDefault();
             }
-            e.preventDefault();
         } else if ((e.key === 'Backspace' || e.key === 'Delete') && (e.metaKey || e.ctrlKey)) {
             if (!targetInput && !e.shiftKey) {
                 fileActions.deleteSelection();

@@ -14,6 +14,7 @@
         Upload,
     } from '@lucide/svelte';
     import FileListNode from '$lib/components/file-list/FileListNode.svelte';
+    import NumberingControl from './NumberingControl.svelte';
     import WithUnits from '$lib/components/WithUnits.svelte';
     import { ListFileItem, ListRootItem } from '$lib/components/file-list/file-list';
     import { fileStateCollection } from '$lib/logic/file-state';
@@ -63,16 +64,28 @@
             : null
     );
 
-    /** Description of the single selected library item, when it has one. */
+    /** The record of that single selected adventure, when there is one. */
+    let singleAdventureObj = $derived(
+        singleAdventure !== null ? $adventures.find((a) => a.id === singleAdventure) : undefined
+    );
+
+    /**
+     * Whether that single selected adventure is in advanced mode. Track
+     * numbering, alternate tracks (and their show/hide-on-map toggle) are
+     * advanced-mode features, so their header controls stay hidden otherwise.
+     */
+    let singleAdventureIsAdvanced = $derived(singleAdventureObj?.advancedMode === true);
+
+    /**
+     * Description of the single selected library item, when it has one. Only for
+     * expeditions here: an adventure's description is shown in the planning view
+     * (underneath the tracks total), not in this pane.
+     */
     let description = $derived.by(() => {
-        if ($librarySelection.length !== 1) {
+        if ($librarySelection.length !== 1 || $librarySelection[0].kind !== 'expedition') {
             return undefined;
         }
-        const item = $librarySelection[0];
-        const found =
-            item.kind === 'adventure'
-                ? $adventures.find((a) => a.id === item.id)
-                : $expeditions.find((e) => e.id === item.id);
+        const found = $expeditions.find((e) => e.id === $librarySelection[0].id);
         return found?.description;
     });
 
@@ -195,6 +208,12 @@
                 <Upload size="12" class="shrink-0" />
                 {i18n._('library.upload_gpx')}
             </button>
+        {/if}
+        {#if singleAdventureObj?.advancedMode}
+            <!-- Track numbering / trip dates for this adventure, edited in place. -->
+            <NumberingControl adventure={singleAdventureObj} />
+        {/if}
+        {#if singleAdventureIsAdvanced}
             <!-- Eye toggle: draw or hide the alternative tracks on the map. -->
             <button
                 class="flex shrink-0 flex-row items-center rounded border px-1.5 py-0.5 font-normal text-muted-foreground hover:bg-accent hover:text-foreground"

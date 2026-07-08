@@ -130,10 +130,8 @@
         item instanceof ListFileItem && $trackAlternatives.has(item.getFileId())
     );
 
-    /** Alternatives exist only in adventures that number their tracks. */
-    let hasNumbering = $derived(
-        fileAdventure?.numbering === 'numbers' || fileAdventure?.numbering === 'date'
-    );
+    /** Alternate tracks are an advanced-mode feature, independent of numbering. */
+    let isAdvancedAdventure = $derived(fileAdventure?.advancedMode === true);
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -298,7 +296,7 @@
                 {i18n._('library.buffer_days')}
             </ContextMenu.Item>
         {/if}
-        {#if item instanceof ListFileItem && hasNumbering}
+        {#if item instanceof ListFileItem && isAdvancedAdventure}
             <ContextMenu.CheckboxItem
                 disabled={!singleSelection}
                 checked={isAlternative}
