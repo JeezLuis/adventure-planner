@@ -1,5 +1,14 @@
 export * from './gpx';
 export * from './statistics';
-export { Coordinates, LineStyleExtension, WaypointType } from './types';
-export { parseGPX, buildGPX, GPXParseError } from './io';
+export {
+    Coordinates,
+    GPXFileType,
+    GPXFileExtensions,
+    LineStyleExtension,
+    MetadataExtensions,
+    OsmandPointsGroup,
+    TrackType,
+    WaypointType,
+} from './types';
+export { parseGPX, buildGPX, buildGPXFromType, GPXParseError } from './io';
 export * from './simplify';

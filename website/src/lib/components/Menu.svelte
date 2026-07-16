@@ -42,11 +42,18 @@
         Minimize2,
         FolderInput,
         FolderOutput,
+        Smartphone,
     } from '@lucide/svelte';
     import { map } from '$lib/components/map/map';
     import { editMetadata } from '$lib/components/file-list/metadata/utils.svelte';
     import { editStyle } from '$lib/components/file-list/style/utils.svelte';
-    import { exportState, ExportState, exportAdventure } from '$lib/components/export/utils.svelte';
+    import {
+        exportState,
+        ExportState,
+        exportAdventure,
+        osmandExport,
+    } from '$lib/components/export/utils.svelte';
+    import OsmandExportDialog from '$lib/components/export/OsmandExportDialog.svelte';
     import { anySelectedLayer } from '$lib/components/map/layer-control/utils';
     import { defaultOverlays } from '$lib/assets/layers';
     import LayerControlSettings from '$lib/components/map/layer-control/LayerControlSettings.svelte';
@@ -174,6 +181,15 @@
                     >
                         <FolderOutput size="16" />
                         {i18n._('menu.export_adventure')}
+                    </Menubar.Item>
+                    <Menubar.Item
+                        onclick={() =>
+                            $selectedAdventureId &&
+                            (osmandExport.adventureId = $selectedAdventureId)}
+                        disabled={$selectedAdventureId === null}
+                    >
+                        <Smartphone size="16" />
+                        {i18n._('menu.export_osmand')}
                     </Menubar.Item>
                 </Menubar.Content>
             </Menubar.Menu>
@@ -491,6 +507,7 @@
 </div>
 
 <Export />
+<OsmandExportDialog />
 <LayerControlSettings bind:open={layerSettingsOpen} />
 
 <svelte:window

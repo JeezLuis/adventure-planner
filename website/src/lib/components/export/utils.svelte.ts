@@ -13,6 +13,9 @@ import {
     encodeAdventurePayload,
     type TrackMeta,
 } from '$lib/logic/adventure-gpx';
+import type { Adventure } from '$lib/library/library';
+import { buildOsmandPackage, type OsmandTrackInput } from '$lib/logic/osmand/osmand-export';
+import type { OsmandExportOptions } from '$lib/logic/osmand/osmand-options';
 import { buildGPX, type GPXFile, type Track } from 'gpx';
 import { toast } from 'svelte-sonner';
 import { i18n } from '$lib/i18n.svelte';
@@ -92,17 +95,27 @@ async function exportFilesAsZip(fileIds: string[], exclude: string[]) {
     }
 }
 
+/** One track of an adventure with its export-relevant library metadata. */
+type AdventureExportEntry = {
+    id: string;
+    file: GPXFile;
+    alternative: boolean;
+    bufferDays?: number;
+    /** The numbering/date/ALT tag label the library shows for this track. */
+    tagLabel?: string;
+};
+
 /**
- * Exports one adventure as a single GPX file: one `<trk>` per track (in the
- * library's manual order) plus an `ap:data` payload carrying the adventure's
- * numbering/date/buffer/alternative metadata, so "Import adventure" can rebuild
- * it faithfully. Called from the File menu, guarded on exactly one adventure
- * being selected.
+ * Collects an adventure's tracks in the library's manual order, together with
+ * the per-track metadata every adventure export needs (alternative flag,
+ * buffer days, numbering tag). Shared by the GPX and the OsmAnd exports.
  */
-export function exportAdventure(adventureId: string) {
+function collectAdventureEntries(
+    adventureId: string
+): { adventure: Adventure; entries: AdventureExportEntry[] } | null {
     const adventure = get(adventures).find((a) => a.id === adventureId);
     if (!adventure) {
-        return;
+        return null;
     }
 
     // The adventure's tracks, ordered like the library (same manual order as trackTags).
@@ -112,9 +125,38 @@ export function exportAdventure(adventureId: string) {
         .map(([fileId]) => fileId)
         .sort((a, b) => (orderIndex.get(a) ?? Infinity) - (orderIndex.get(b) ?? Infinity));
 
-    const entries = orderedIds
-        .map((id) => ({ id, file: fileStateCollection.getFile(id) }))
-        .filter((entry): entry is { id: string; file: GPXFile } => entry.file != null);
+    const bufferDays = get(trackBufferDays);
+    const alternatives = get(trackAlternatives);
+    const tags = get(trackTags);
+    const entries: AdventureExportEntry[] = [];
+    for (const id of orderedIds) {
+        const file = fileStateCollection.getFile(id);
+        if (file) {
+            entries.push({
+                id,
+                file,
+                alternative: alternatives.has(id),
+                bufferDays: bufferDays.get(id),
+                tagLabel: tags.get(id)?.label,
+            });
+        }
+    }
+    return { adventure, entries };
+}
+
+/**
+ * Exports one adventure as a single GPX file: one `<trk>` per track (in the
+ * library's manual order) plus an `ap:data` payload carrying the adventure's
+ * numbering/date/buffer/alternative metadata, so "Import adventure" can rebuild
+ * it faithfully. Called from the File menu, guarded on exactly one adventure
+ * being selected.
+ */
+export function exportAdventure(adventureId: string) {
+    const collected = collectAdventureEntries(adventureId);
+    if (!collected) {
+        return;
+    }
+    const { adventure, entries } = collected;
 
     const trackFiles = entries.filter((entry) => entry.file.trk.length > 0);
     if (trackFiles.length === 0) {
@@ -122,11 +164,9 @@ export function exportAdventure(adventureId: string) {
         return;
     }
 
-    const bufferDays = get(trackBufferDays);
-    const alternatives = get(trackAlternatives);
     const tracksMeta: TrackMeta[] = trackFiles.map((entry) => ({
-        bufferDays: bufferDays.get(entry.id),
-        alternative: alternatives.has(entry.id),
+        bufferDays: entry.bufferDays,
+        alternative: entry.alternative,
     }));
 
     // Merge into one file: clone a track file as a scaffold, then swap in one
@@ -165,4 +205,50 @@ function fileToSingleTrack(file: GPXFile): Track {
     }
     track.name = file.metadata.name ?? track.name;
     return track;
+}
+
+/** The adventure whose "Send to OsmAnd" dialog is open (null = closed). */
+export const osmandExport = $state({ adventureId: null as string | null });
+
+/**
+ * Exports one adventure as an OsmAnd `.osf` package (see
+ * $lib/logic/osmand/osmand-export.ts): a pre-styled folder of tracks that
+ * OsmAnd imports in one tap, main tracks and alternatives in their own colors,
+ * POIs with OsmAnd icons, and the plan document as the track description.
+ * Returns true when a download was produced.
+ */
+export async function exportAdventureToOsmand(
+    adventureId: string,
+    options: OsmandExportOptions
+): Promise<boolean> {
+    const collected = collectAdventureEntries(adventureId);
+    if (!collected) {
+        return false;
+    }
+    const tracks: OsmandTrackInput[] = collected.entries
+        .filter((entry) => entry.file.trk.length > 0 || entry.file.wpt.length > 0)
+        .map((entry) => ({
+            file: entry.file,
+            stageLabel: entry.tagLabel,
+            alternative: entry.alternative,
+            bufferDays: entry.bufferDays,
+        }));
+    if (tracks.length === 0) {
+        toast.error(i18n._('library.export_empty', 'This adventure has no tracks to export'));
+        return false;
+    }
+    try {
+        const { fileName, blob } = await buildOsmandPackage(
+            { name: collected.adventure.name, planDoc: collected.adventure.planDoc },
+            tracks,
+            options
+        );
+        FileSaver.saveAs(blob, fileName);
+        toast.success(i18n._('osmand.success', 'Adventure packaged for OsmAnd'));
+        return true;
+    } catch (error) {
+        console.error('OsmAnd export failed', error);
+        toast.error(i18n._('osmand.error', 'Could not build the OsmAnd package'));
+        return false;
+    }
 }

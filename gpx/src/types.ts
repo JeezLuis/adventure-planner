@@ -4,6 +4,48 @@ export type GPXFileType = {
     wpt: WaypointType[];
     trk: TrackType[];
     rte: RouteType[];
+    /**
+     * File-level `<gpx><extensions>`. Not part of the in-memory {@link GPXFile}
+     * model: the parser drops it and the app never reads it. It exists so
+     * one-way exporters (the OsmAnd .osf export) can inject appearance
+     * extensions into the serializable tree right before building the XML.
+     */
+    extensions?: GPXFileExtensions;
+};
+
+/**
+ * OsmAnd track-appearance extensions, applied by OsmAnd to the whole file.
+ * Reference: https://docs.osmand.net/docs/technical/osmand-file-formats/osmand-gpx
+ */
+export type GPXFileExtensions = {
+    /** Track color as #RRGGBB or #AARRGGBB (alpha = track opacity). */
+    'osmand:color'?: string;
+    /** Line width: 'thin' | 'medium' | 'bold' or an integer 1-24 (as string). */
+    'osmand:width'?: string;
+    /** Render direction arrows along the line ('true'/'false'). */
+    'osmand:show_arrows'?: string;
+    /** Render start/finish markers ('true'/'false'). */
+    'osmand:show_start_finish'?: string;
+    /** Waypoint group appearance definitions (group = waypoint `<type>`). */
+    'osmand:points_groups'?: OsmandPointsGroups;
+};
+
+export type OsmandPointsGroups = {
+    group: OsmandPointsGroup[];
+};
+
+/** One `<group>` element inside `<osmand:points_groups>`; all data is attributes. */
+export type OsmandPointsGroup = {
+    attributes: {
+        /** Group name; waypoints join it via their `<type>` element. */
+        name: string;
+        /** Default icon color of the group's waypoints (#RRGGBB or #AARRGGBB). */
+        color?: string;
+        /** Default OsmAnd icon name (e.g. 'tourism_camp_site'). */
+        icon?: string;
+        /** Default background shape: 'circle' | 'square' | 'octagon'. */
+        background?: string;
+    };
 };
 
 export type GPXFileAttributes = {
@@ -29,6 +71,22 @@ export type Metadata = {
  */
 export type MetadataExtensions = {
     'ap:data'?: string;
+    /**
+     * OsmAnd activity type id (see OsmAnd-resources poi/activities.json,
+     * e.g. 'adventure_motorcycling'). Written by the OsmAnd export only.
+     */
+    'osmand:activity'?: string;
+    /**
+     * Human-readable info tags written by the OsmAnd export. OsmAnd (Android
+     * 5.0+) lists metadata extension tags in the track context menu, so these
+     * surface adventure metadata that has no native GPX field. Never reuse
+     * OsmAnd's own appearance keys ('color', 'width', ...) here.
+     */
+    adventure?: string;
+    stage?: string;
+    date?: string;
+    alternative?: string;
+    buffer_days?: string;
 };
 
 export type Link = {
@@ -56,6 +114,12 @@ export type WaypointType = {
 
 export type WaypointExtensions = {
     'gpxx:RoutePointExtension'?: RoutePointExtension;
+    /** OsmAnd icon name for this waypoint (e.g. 'amenity_drinking_water'). */
+    'osmand:icon'?: string;
+    /** OsmAnd waypoint color as #RRGGBB or #AARRGGBB. */
+    'osmand:color'?: string;
+    /** OsmAnd background shape: 'circle' | 'square' | 'octagon'. */
+    'osmand:background'?: string;
 };
 
 export type Coordinates = {

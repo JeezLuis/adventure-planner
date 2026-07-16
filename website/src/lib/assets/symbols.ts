@@ -64,6 +64,12 @@ import {
     X as XSvg,
 } from 'lucide-static';
 import type { Component } from 'svelte';
+import { symbolCatalog } from './symbol-catalog';
+
+// The data half (values, colors, getSymbolKey) lives in ./symbol-catalog.ts so
+// logic modules and tests can use it without importing Svelte components; this
+// module adds the Lucide icons for the UI and re-exports the catalog API.
+export { symbolCategoryColors, DEFAULT_WAYPOINT_COLOR, getSymbolKey } from './symbol-catalog';
 
 export type Symbol = {
     value: string;
@@ -72,104 +78,48 @@ export type Symbol = {
     color: string;
 };
 
-/**
- * Map pin fill per semantic family of symbols, so waypoints can be told
- * apart on the map at a glance. Hues are spread over the wheel to stay
- * distinguishable at pin size, and dark enough for the white glyph on top.
- */
-export const symbolCategoryColors = {
-    danger: '#dc2626',
-    water: '#0284c7',
-    nature: '#16a34a',
-    sleep: '#7c3aed',
-    food: '#ea580c',
-    health: '#c026d3',
-    services: '#0d9488',
-    transport: '#64748b',
-} as const;
-
-/** Pin fill of waypoints without a (known) symbol: MapLibre's classic blue. */
-export const DEFAULT_WAYPOINT_COLOR = '#3fb1ce';
-
-const { danger, water, nature, sleep, food, health, services, transport } = symbolCategoryColors;
-
-export const symbols: { [key: string]: Symbol } = {
-    alert: { value: 'Alert', icon: TriangleAlert, iconSvg: TriangleAlertSvg, color: danger },
-    anchor: { value: 'Anchor', icon: Anchor, iconSvg: AnchorSvg, color: water },
-    bank: { value: 'Bank', icon: Landmark, iconSvg: LandmarkSvg, color: services },
-    beach: { value: 'Beach', icon: Shell, iconSvg: ShellSvg, color: nature },
-    bike_trail: { value: 'Bike Trail', icon: Bike, iconSvg: BikeSvg, color: nature },
-    binoculars: { value: 'Binoculars', icon: Binoculars, iconSvg: BinocularsSvg, color: nature },
-    bridge: { value: 'Bridge', color: transport },
-    building: { value: 'Building', icon: Building, iconSvg: BuildingSvg, color: transport },
-    campground: { value: 'Campground', icon: Tent, iconSvg: TentSvg, color: sleep },
-    car: { value: 'Car', icon: Car, iconSvg: CarSvg, color: transport },
-    car_repair: { value: 'Car Repair', icon: Wrench, iconSvg: WrenchSvg, color: services },
-    convenience_store: {
-        value: 'Convenience Store',
-        icon: ShoppingBasket,
-        iconSvg: ShoppingBasketSvg,
-        color: services,
-    },
-    crossing: {
-        value: 'Crossing',
-        icon: X,
-        iconSvg: XSvg,
-        color: danger,
-    },
-    department_store: {
-        value: 'Department Store',
-        icon: ShoppingBasket,
-        iconSvg: ShoppingBasketSvg,
-        color: services,
-    },
-    drinking_water: { value: 'Drinking Water', icon: Droplet, iconSvg: DropletSvg, color: water },
-    exit: { value: 'Exit', icon: DoorOpen, iconSvg: DoorOpenSvg, color: transport },
-    lodge: { value: 'Lodge', icon: House, iconSvg: HouseSvg, color: sleep },
-    lodging: { value: 'Lodging', icon: Bed, iconSvg: BedSvg, color: sleep },
-    forest: { value: 'Forest', icon: Trees, iconSvg: TreesSvg, color: nature },
-    gas_station: { value: 'Gas Station', icon: Fuel, iconSvg: FuelSvg, color: services },
-    ground_transportation: {
-        value: 'Ground Transportation',
-        icon: TrainFront,
-        iconSvg: TrainFrontSvg,
-        color: transport,
-    },
-    hotel: { value: 'Hotel', icon: Bed, iconSvg: BedSvg, color: sleep },
-    house: { value: 'House', icon: House, iconSvg: HouseSvg, color: sleep },
-    information: { value: 'Information', icon: Info, iconSvg: InfoSvg, color: services },
-    park: { value: 'Park', icon: TreeDeciduous, iconSvg: TreeDeciduousSvg, color: nature },
-    parking_area: {
-        value: 'Parking Area',
-        icon: CircleParking,
-        iconSvg: CircleParkingSvg,
-        color: transport,
-    },
-    pharmacy: { value: 'Pharmacy', icon: Cross, iconSvg: CrossSvg, color: health },
-    picnic_area: { value: 'Picnic Area', icon: Utensils, iconSvg: UtensilsSvg, color: food },
-    restaurant: { value: 'Restaurant', icon: Utensils, iconSvg: UtensilsSvg, color: food },
-    restricted_area: {
-        value: 'Restricted Area',
-        icon: Construction,
-        iconSvg: ConstructionSvg,
-        color: danger,
-    },
-    restroom: { value: 'Restroom', icon: Toilet, iconSvg: ToiletSvg, color: health },
-    road: { value: 'Road', icon: BrickWall, iconSvg: BrickWallSvg, color: transport },
-    scenic_area: { value: 'Scenic Area', icon: Binoculars, iconSvg: BinocularsSvg, color: nature },
-    shelter: { value: 'Shelter', icon: Tent, iconSvg: TentSvg, color: sleep },
-    shopping_center: { value: 'Shopping Center', icon: ShoppingBasket, color: services },
-    shower: { value: 'Shower', icon: ShowerHead, iconSvg: ShowerHeadSvg, color: health },
-    summit: { value: 'Summit', icon: Mountain, iconSvg: MountainSvg, color: nature },
-    telephone: { value: 'Telephone', icon: Phone, iconSvg: PhoneSvg, color: services },
-    tunnel: { value: 'Tunnel', color: transport },
-    water_source: { value: 'Water Source', icon: Droplet, iconSvg: DropletSvg, color: water },
+/** The Lucide glyphs of each symbol; keys without one render a plain pin. */
+const symbolIcons: { [key: string]: { icon?: Component<IconProps>; iconSvg?: string } } = {
+    alert: { icon: TriangleAlert, iconSvg: TriangleAlertSvg },
+    anchor: { icon: Anchor, iconSvg: AnchorSvg },
+    bank: { icon: Landmark, iconSvg: LandmarkSvg },
+    beach: { icon: Shell, iconSvg: ShellSvg },
+    bike_trail: { icon: Bike, iconSvg: BikeSvg },
+    binoculars: { icon: Binoculars, iconSvg: BinocularsSvg },
+    building: { icon: Building, iconSvg: BuildingSvg },
+    campground: { icon: Tent, iconSvg: TentSvg },
+    car: { icon: Car, iconSvg: CarSvg },
+    car_repair: { icon: Wrench, iconSvg: WrenchSvg },
+    convenience_store: { icon: ShoppingBasket, iconSvg: ShoppingBasketSvg },
+    crossing: { icon: X, iconSvg: XSvg },
+    department_store: { icon: ShoppingBasket, iconSvg: ShoppingBasketSvg },
+    drinking_water: { icon: Droplet, iconSvg: DropletSvg },
+    exit: { icon: DoorOpen, iconSvg: DoorOpenSvg },
+    lodge: { icon: House, iconSvg: HouseSvg },
+    lodging: { icon: Bed, iconSvg: BedSvg },
+    forest: { icon: Trees, iconSvg: TreesSvg },
+    gas_station: { icon: Fuel, iconSvg: FuelSvg },
+    ground_transportation: { icon: TrainFront, iconSvg: TrainFrontSvg },
+    hotel: { icon: Bed, iconSvg: BedSvg },
+    house: { icon: House, iconSvg: HouseSvg },
+    information: { icon: Info, iconSvg: InfoSvg },
+    park: { icon: TreeDeciduous, iconSvg: TreeDeciduousSvg },
+    parking_area: { icon: CircleParking, iconSvg: CircleParkingSvg },
+    pharmacy: { icon: Cross, iconSvg: CrossSvg },
+    picnic_area: { icon: Utensils, iconSvg: UtensilsSvg },
+    restaurant: { icon: Utensils, iconSvg: UtensilsSvg },
+    restricted_area: { icon: Construction, iconSvg: ConstructionSvg },
+    restroom: { icon: Toilet, iconSvg: ToiletSvg },
+    road: { icon: BrickWall, iconSvg: BrickWallSvg },
+    scenic_area: { icon: Binoculars, iconSvg: BinocularsSvg },
+    shelter: { icon: Tent, iconSvg: TentSvg },
+    shopping_center: { icon: ShoppingBasket },
+    shower: { icon: ShowerHead, iconSvg: ShowerHeadSvg },
+    summit: { icon: Mountain, iconSvg: MountainSvg },
+    telephone: { icon: Phone, iconSvg: PhoneSvg },
+    water_source: { icon: Droplet, iconSvg: DropletSvg },
 };
 
-export function getSymbolKey(value: string | undefined): string | undefined {
-    if (value === undefined) {
-        return undefined;
-    } else {
-        return Object.keys(symbols).find((key) => symbols[key].value === value);
-    }
-}
+export const symbols: { [key: string]: Symbol } = Object.fromEntries(
+    Object.entries(symbolCatalog).map(([key, info]) => [key, { ...info, ...symbolIcons[key] }])
+);

@@ -7,6 +7,29 @@
         "404_title": "página no encontrada",
         "description": "Visualiza, edita y crea archivos GPX online con planificación avanzada de rutas y herramientas de procesamiento de archivos, bonitos mapas y visualizaciones detalladas de datos."
     },
+    "osmand": {
+        "title": "Enviar a OsmAnd",
+        "help": "Empaqueta esta aventura como un archivo .osf de OsmAnd: una traza por etapa con su estilo, y tus POI con icono y color. Abre el archivo con OsmAnd para importarlo todo de un toque.",
+        "main_color": "Trazas principales",
+        "alternative_color": "Alternativas",
+        "alternative_opacity": "Opacidad de alternativas (%)",
+        "width": "Grosor de traza (1-24)",
+        "show_arrows": "Flechas de dirección",
+        "show_start_finish": "Iconos de inicio y fin",
+        "milestones": "Waypoints de kilometraje (hechos | restantes)",
+        "milestone_interval": "Intervalo de kilometraje (km)",
+        "activity": "Tipo de actividad",
+        "activity_options": {
+            "none": "Ninguna",
+            "adventure_motorcycling": "Moto trail",
+            "enduro_motorcycling": "Enduro",
+            "off_road": "Off-road",
+            "car": "Coche"
+        },
+        "export": "Exportar .osf",
+        "success": "Aventura empaquetada para OsmAnd",
+        "error": "No se pudo generar el paquete de OsmAnd"
+    },
     "menu": {
         "new": "Nuevo",
         "save_error": "No se pudieron guardar los cambios - puede que el almacenamiento del navegador esté lleno o no disponible",
@@ -22,6 +45,7 @@
         "export": "Exportar...",
         "import_adventure": "Importar aventura...",
         "export_adventure": "Exportar aventura...",
+        "export_osmand": "Enviar a OsmAnd...",
         "export_options": "Opciones de exportación",
         "download_file": "Descargar archivo",
         "download_files": "Descargar archivos",

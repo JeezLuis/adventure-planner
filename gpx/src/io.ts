@@ -224,8 +224,16 @@ export function parseGPX(gpxData: string): GPXFile {
 }
 
 export function buildGPX(file: GPXFile, exclude: string[]): string {
-    const gpx = file.toGPXFileType(exclude);
+    return buildGPXFromType(file.toGPXFileType(exclude));
+}
 
+/**
+ * Serializes an already-materialized {@link GPXFileType} tree. Split out of
+ * {@link buildGPX} so one-way exporters can inject extensions the in-memory
+ * model does not carry (e.g. the OsmAnd appearance extensions injected by the
+ * OsmAnd .osf export) between `toGPXFileType()` and serialization.
+ */
+export function buildGPXFromType(gpx: GPXFileType): string {
     let lastDate = undefined;
     const builder = new XMLBuilder({
         format: true,
@@ -258,6 +266,10 @@ export function buildGPX(file: GPXFile, exclude: string[]): string {
     gpx.attributes['xmlns:gpxpx'] = 'http://www.garmin.com/xmlschemas/PowerExtension/v1';
     gpx.attributes['xmlns:gpx_style'] = 'http://www.topografix.com/GPX/gpx_style/0/2';
     gpx.attributes['xmlns:ap'] = 'https://github.com/JeezLuis/adventure-planner';
+    // Declared unconditionally (harmless when unused) so exports carrying
+    // osmand:* extensions are valid against namespace-aware parsers.
+    gpx.attributes['xmlns:osmand'] =
+        'https://osmand.net/docs/technical/osmand-file-formats/osmand-gpx';
 
     if (gpx.trk.length === 1 && (gpx.trk[0].name === undefined || gpx.trk[0].name === '')) {
         gpx.trk[0].name = gpx.metadata.name;

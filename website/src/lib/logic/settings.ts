@@ -13,6 +13,11 @@ import {
 } from '$lib/assets/layers';
 import { browser } from '$app/environment';
 import { get, writable, type Writable } from 'svelte/store';
+import {
+    DEFAULT_OSMAND_EXPORT_OPTIONS,
+    sanitizeOsmandExportOptions,
+    type OsmandExportOptions,
+} from '$lib/logic/osmand/osmand-options';
 
 export class Setting<V> {
     private _db: Database | null = null;
@@ -329,6 +334,16 @@ export const settings = {
      * traces show until the user opts in to see the alternatives.
      */
     showAlternativesOnMap: new Setting('showAlternativesOnMap', false),
+    /**
+     * Style recipe of the "Send to OsmAnd" adventure export (colors, width,
+     * arrows, milestones...), remembered across exports. Validated field by
+     * field so a stale row can never produce an invalid package.
+     */
+    osmandExportOptions: new Setting<OsmandExportOptions>(
+        'osmandExportOptions',
+        DEFAULT_OSMAND_EXPORT_OPTIONS,
+        sanitizeOsmandExportOptions
+    ),
     fileOrder: new Setting<string[]>('fileOrder', []),
     defaultOpacity: new Setting('defaultOpacity', 0.7),
     defaultWidth: new Setting('defaultWidth', browser && window.innerWidth < 600 ? 8 : 5),
