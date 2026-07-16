@@ -8,6 +8,7 @@
         pendingCreation,
         pendingFerryCreation,
         selectedAdventureId,
+        selectedAdventureIsAdvanced,
         targetExpeditionId,
     } from '$lib/library/library';
     import { i18n } from '$lib/i18n.svelte';
@@ -81,22 +82,23 @@
             <Route size="15" />
             {i18n._('library.new_track')}
         </ButtonWithTooltip>
-        <ButtonWithTooltip
-            variant="ghost"
-            size="sm"
-            class="grow gap-1 h-7 px-1.5 text-xs"
-            label={i18n._(
-                canCreateTrack ? 'library.new_ferry_tooltip' : 'library.new_ferry_disabled_tooltip'
-            )}
-            disabled={!canCreateTrack}
-            onclick={() => {
-                if ($selectedAdventureId) {
-                    pendingFerryCreation.set({ adventureId: $selectedAdventureId });
-                }
-            }}
-        >
-            <Ship size="15" />
-            {i18n._('library.new_ferry')}
-        </ButtonWithTooltip>
+        {#if $selectedAdventureIsAdvanced}
+            <!-- Ferry legs are an advanced-mode feature, shown only when the
+                 single selected adventure has advanced mode on. -->
+            <ButtonWithTooltip
+                variant="ghost"
+                size="sm"
+                class="grow gap-1 h-7 px-1.5 text-xs"
+                label={i18n._('library.new_ferry_tooltip')}
+                onclick={() => {
+                    if ($selectedAdventureId) {
+                        pendingFerryCreation.set({ adventureId: $selectedAdventureId });
+                    }
+                }}
+            >
+                <Ship size="15" />
+                {i18n._('library.new_ferry')}
+            </ButtonWithTooltip>
+        {/if}
     </div>
 </div>

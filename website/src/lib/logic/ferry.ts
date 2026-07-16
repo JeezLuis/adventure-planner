@@ -197,3 +197,34 @@ export async function reverseGeocode(coordinates: Coordinates, lang: string): Pr
 export function shortPlaceName(name: string): string {
     return name.split(',')[0].trim() || name;
 }
+
+/**
+ * The millisecond shift to apply to every point of a ferry track so its
+ * departure (the first point) lands on the trip day it now occupies, keeping
+ * the time of day. `firstPointTime` is the ferry's current departure timestamp,
+ * `startDate` the adventure start (yyyy-mm-dd) and `dayOffset` the whole-day
+ * offset of the ferry's position in the trip. Returns 0 when nothing needs to
+ * move (no usable timestamp/start date, or already on the right day) so the
+ * caller can skip the rewrite. Whole *local* days are used, so the local time
+ * of day is preserved even across a daylight-saving change.
+ */
+export function ferryDepartureShiftMs(
+    firstPointTime: Date | undefined,
+    startDate: string,
+    dayOffset: number
+): number {
+    if (!firstPointTime || Number.isNaN(firstPointTime.getTime())) {
+        return 0;
+    }
+    const [year, month, day] = startDate.split('-').map(Number);
+    if (!year || !month || !day) {
+        return 0;
+    }
+    const targetMidnight = new Date(year, month - 1, day + dayOffset);
+    const currentMidnight = new Date(
+        firstPointTime.getFullYear(),
+        firstPointTime.getMonth(),
+        firstPointTime.getDate()
+    );
+    return targetMidnight.getTime() - currentMidnight.getTime();
+}

@@ -43,9 +43,13 @@ import {
     deleteExpeditionCascade,
     expeditions,
     hasAdvancedData,
+    orderedFilesByAdventure,
     queuePlacement,
     selectLibraryItem,
+    trackAlternatives,
+    trackBufferDays,
     trackPlacements,
+    tripDayOffsets,
     updateAdventure,
     type LibrarySelectionItem,
 } from '$lib/library/library';
@@ -54,7 +58,13 @@ import {
     decodeAdventurePayload,
     type AdventurePayload,
 } from '$lib/logic/adventure-gpx';
-import { FERRY_COLOR, FERRY_TRACK_TYPE, getFerryRoute, shortPlaceName } from '$lib/logic/ferry';
+import {
+    FERRY_COLOR,
+    FERRY_TRACK_TYPE,
+    ferryDepartureShiftMs,
+    getFerryRoute,
+    shortPlaceName,
+} from '$lib/logic/ferry';
 
 /**
  * Deletes an adventure or an expedition (with everything nested below it)
@@ -205,6 +215,57 @@ export async function createFerryTrip(opts: {
                 'No sea route found between these ports; drew a direct line instead'
             )
         );
+    }
+}
+
+/**
+ * Realigns every ferry leg's departure to the calendar day it now occupies in
+ * its adventure, keeping the time of day. A ferry's date tag follows its
+ * position in a date-numbered adventure (see trackTags), but its stored
+ * timestamps do not move on their own; this shifts them so a ferry dragged to
+ * another day sails on that day (and exports/schedules stay consistent).
+ *
+ * Called after a drag reorder commits (see SortableFileList.updateToFileOrder).
+ * A no-op for adventures that are not date-numbered and for ferries already on
+ * the right day, so it is safe to run on every reorder and never loops: it only
+ * writes when a day actually changed. Each shift goes through the file action
+ * manager, so it is a single undoable step alongside the reorder.
+ */
+export function updateFerryDepartureDates(): void {
+    const filesByAdventure = orderedFilesByAdventure(get(trackPlacements), get(settings.fileOrder));
+    const alternatives = get(trackAlternatives);
+    const buffers = get(trackBufferDays);
+    for (const adventure of get(adventures)) {
+        if (adventure.numbering !== 'date' || adventure.startDate === undefined) {
+            continue;
+        }
+        const files = filesByAdventure.get(adventure.id) ?? [];
+        const offsets = tripDayOffsets(files, alternatives, buffers);
+        for (const fileId of files) {
+            const dayOffset = offsets.get(fileId);
+            if (dayOffset === undefined) {
+                continue; // an alternative: it holds no slot in the schedule
+            }
+            const file = fileStateCollection.getFile(fileId);
+            if (!file || file.trk[0]?.type !== FERRY_TRACK_TYPE) {
+                continue;
+            }
+            const shift = ferryDepartureShiftMs(
+                file.getTrackPoints()[0]?.time,
+                adventure.startDate,
+                dayOffset
+            );
+            if (shift === 0) {
+                continue;
+            }
+            fileActionManager.applyToFile(fileId, (draft) => {
+                draft.getTrackPoints().forEach((point) => {
+                    if (point.time) {
+                        point.time = new Date(point.time.getTime() + shift);
+                    }
+                });
+            });
+        }
     }
 }
 

@@ -609,6 +609,57 @@ function formatTripDate(startDate: string, offsetDays: number, showYear: boolean
 }
 
 /**
+ * Groups the placed track file ids by their adventure, in the track pane's
+ * manual order (the global {@link Setting} `fileOrder`, with any files it does
+ * not know yet appended). Shared by the numbering tags and the ferry
+ * departure-date reconciler so both see the same per-adventure order.
+ */
+export function orderedFilesByAdventure(
+    placements: Map<string, string>,
+    fileOrder: string[]
+): Map<string, string[]> {
+    const filesByAdventure = new Map<string, string[]>();
+    const ordered = [
+        ...fileOrder,
+        ...[...placements.keys()].filter((fileId) => !fileOrder.includes(fileId)),
+    ];
+    ordered.forEach((fileId) => {
+        const adventureId = placements.get(fileId);
+        if (adventureId !== undefined) {
+            const files = filesByAdventure.get(adventureId) ?? [];
+            files.push(fileId);
+            filesByAdventure.set(adventureId, files);
+        }
+    });
+    return filesByAdventure;
+}
+
+/**
+ * The whole-day offset from the trip start date of each track in a date-numbered
+ * adventure, following the given order. Alternatives hold no slot (they get no
+ * entry); every other track sits one day after the previous one, plus that
+ * previous track's buffer days. Single source of truth for the calendar day a
+ * track falls on, used by the date tags (trackTags) and the ferry
+ * departure-date reconciler (see updateFerryDepartureDates).
+ */
+export function tripDayOffsets(
+    orderedFileIds: string[],
+    alternatives: Set<string>,
+    buffers: Map<string, number>
+): Map<string, number> {
+    const offsets = new Map<string, number>();
+    let dayOffset = 0;
+    for (const fileId of orderedFileIds) {
+        if (alternatives.has(fileId)) {
+            continue;
+        }
+        offsets.set(fileId, dayOffset);
+        dayOffset += 1 + (buffers.get(fileId) ?? 0);
+    }
+    return offsets;
+}
+
+/**
  * The numbering tag of every track whose adventure has one, keyed by file id.
  * Tracks follow the order of the track pane (the global manual file order);
  * in 'date' mode each track advances one day, plus the buffer days of the
@@ -620,19 +671,7 @@ export const trackTags: Readable<Map<string, TrackTag>> = derived(
     [adventures, trackPlacements, trackBufferDays, trackAlternatives, settings.fileOrder],
     ([$adventures, $placements, $buffers, $alternatives, $fileOrder]) => {
         const tags = new Map<string, TrackTag>();
-        const filesByAdventure = new Map<string, string[]>();
-        const ordered = [
-            ...$fileOrder,
-            ...[...$placements.keys()].filter((fileId) => !$fileOrder.includes(fileId)),
-        ];
-        ordered.forEach((fileId) => {
-            const adventureId = $placements.get(fileId);
-            if (adventureId !== undefined) {
-                const files = filesByAdventure.get(adventureId) ?? [];
-                files.push(fileId);
-                filesByAdventure.set(adventureId, files);
-            }
-        });
+        const filesByAdventure = orderedFilesByAdventure($placements, $fileOrder);
         $adventures.forEach((adventure) => {
             const files = filesByAdventure.get(adventure.id) ?? [];
             if (adventure.numbering === 'numbers') {
@@ -649,22 +688,20 @@ export const trackTags: Readable<Map<string, TrackTag>> = derived(
                     });
                 });
             } else if (adventure.numbering === 'date' && adventure.startDate !== undefined) {
-                let dayOffset = 0;
+                const offsets = tripDayOffsets(files, $alternatives, $buffers);
                 files.forEach((fileId) => {
                     if ($alternatives.has(fileId)) {
                         tags.set(fileId, ALTERNATIVE_TAG);
                         return;
                     }
-                    const bufferDays = $buffers.get(fileId) ?? 0;
                     tags.set(fileId, {
                         label: formatTripDate(
                             adventure.startDate as string,
-                            dayOffset,
+                            offsets.get(fileId) ?? 0,
                             adventure.showYear ?? false
                         ),
-                        bufferDays,
+                        bufferDays: $buffers.get(fileId) ?? 0,
                     });
-                    dayOffset += 1 + bufferDays;
                 });
             } else if (adventure.advancedMode) {
                 // Advanced but not numbered: alternatives are still marked (the

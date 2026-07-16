@@ -10,6 +10,7 @@ import {
     getFerryRoute,
     searchPorts,
     shortPlaceName,
+    ferryDepartureShiftMs,
     FERRY_TRACK_TYPE,
     FERRY_COLOR,
 } from '$lib/logic/ferry';
@@ -147,5 +148,28 @@ describe('ferry GPX round-trip (standard compliance)', () => {
         expect(parsed.trk[0].trkseg[0].trkpt[0].time?.toISOString()).toBe(departure.toISOString());
         expect(parsed.trk[0].trkseg[0].trkpt[1].time?.toISOString()).toBe(arrival.toISOString());
         expect(parsed.trk[0].getStyle()?.['gpx_style:color']?.toLowerCase()).toBe(FERRY_COLOR);
+    });
+});
+
+describe('ferryDepartureShiftMs', () => {
+    it('shifts the departure to the trip day it occupies, keeping the time of day', () => {
+        const first = new Date(2026, 6, 1, 8, 30); // local Jul 1, 08:30
+        const shift = ferryDepartureShiftMs(first, '2026-07-01', 2); // start + 2 days -> Jul 3
+        const shifted = new Date(first.getTime() + shift);
+        expect(shifted.getFullYear()).toBe(2026);
+        expect(shifted.getMonth()).toBe(6); // July
+        expect(shifted.getDate()).toBe(3);
+        expect(shifted.getHours()).toBe(8);
+        expect(shifted.getMinutes()).toBe(30);
+    });
+
+    it('is a no-op when the ferry is already on the right day', () => {
+        const first = new Date(2026, 6, 5, 8, 0); // local Jul 5
+        expect(ferryDepartureShiftMs(first, '2026-07-01', 4)).toBe(0); // start + 4 -> Jul 5
+    });
+
+    it('returns 0 for a missing timestamp or an invalid start date', () => {
+        expect(ferryDepartureShiftMs(undefined, '2026-07-01', 0)).toBe(0);
+        expect(ferryDepartureShiftMs(new Date(2026, 6, 1), '', 0)).toBe(0);
     });
 });

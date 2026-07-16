@@ -2,7 +2,7 @@ import { isMac } from '$lib/utils';
 import Sortable, { type Direction } from 'sortablejs/Sortable';
 import { ListItem, ListLevel, ListRootItem } from './file-list';
 import { selection } from '$lib/logic/selection';
-import { getFileIds, moveItems } from '$lib/logic/file-actions';
+import { getFileIds, moveItems, updateFerryDepartureDates } from '$lib/logic/file-actions';
 import { get, writable, type Readable } from 'svelte/store';
 import { settings } from '$lib/logic/settings';
 import type { GPXFileWithStatistics } from '$lib/logic/statistics-tree';
@@ -289,6 +289,9 @@ export class SortableFileList {
             fileOrder_.some((value, index) => value !== merged[index])
         ) {
             fileOrder.set(merged);
+            // A ferry dragged to a different day sails on that day: realign its
+            // stored departure to the calendar date of its new position.
+            updateFerryDepartureDates();
         }
     }
 

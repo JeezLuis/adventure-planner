@@ -68,6 +68,7 @@
     import {
         pendingFerryCreation,
         selectedAdventureId,
+        selectedAdventureIsAdvanced,
         targetExpeditionId,
     } from '$lib/library/library';
     import { fileStateCollection } from '$lib/logic/file-state';
@@ -145,15 +146,17 @@
                         {i18n._('menu.new')}
                         <Shortcut key="+" ctrl={true} />
                     </Menubar.Item>
-                    <Menubar.Item
-                        onclick={() =>
-                            $selectedAdventureId &&
-                            pendingFerryCreation.set({ adventureId: $selectedAdventureId })}
-                        disabled={$selectedAdventureId === null}
-                    >
-                        <Ship size="16" />
-                        {i18n._('menu.add_ferry')}
-                    </Menubar.Item>
+                    {#if $selectedAdventureIsAdvanced}
+                        <!-- Ferry legs are advanced-mode only (see LibraryActions). -->
+                        <Menubar.Item
+                            onclick={() =>
+                                $selectedAdventureId &&
+                                pendingFerryCreation.set({ adventureId: $selectedAdventureId })}
+                        >
+                            <Ship size="16" />
+                            {i18n._('menu.add_ferry')}
+                        </Menubar.Item>
+                    {/if}
                     <Menubar.Item
                         onclick={() =>
                             triggerFileInput((files) =>

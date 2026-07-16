@@ -7,7 +7,7 @@
     import { Ship, MapPin, Loader2, X } from '@lucide/svelte';
     import { get } from 'svelte/store';
     import type { Coordinates } from 'gpx';
-    import { pendingFerryCreation } from '$lib/library/library';
+    import { adventures, pendingFerryCreation } from '$lib/library/library';
     import { createFerryTrip } from '$lib/logic/file-actions';
     import { searchPorts, reverseGeocode, shortPlaceName, type FerryPort } from '$lib/logic/ferry';
     import { map } from '$lib/components/map/map';
@@ -61,7 +61,12 @@
                 toQuery = '';
                 fromResults = [];
                 toResults = [];
-                departureDate = todayISO();
+                // Default to the adventure's start date when it is date-numbered
+                // (so the crossing starts on the trip's timeline and passes the
+                // "on or after the start date" check); otherwise to today.
+                const adv = get(adventures).find((a) => a.id === pending.adventureId);
+                departureDate =
+                    adv && adv.numbering === 'date' && adv.startDate ? adv.startDate : todayISO();
                 departureTime = '08:00';
                 arrivalTime = '18:00';
                 dayOffset = '0';
@@ -89,6 +94,17 @@
     let arrivalBeforeDeparture = $derived(
         fromPort !== null && toPort !== null && arrival.getTime() <= departure.getTime()
     );
+    // The adventure's trip start date, when it numbers its tracks by date; the
+    // ferry cannot depart before the trip begins.
+    let adventureStartDate = $derived.by(() => {
+        const adv = $adventures.find((a) => a.id === adventureId);
+        return adv && adv.numbering === 'date' && adv.startDate ? adv.startDate : '';
+    });
+    let departureBeforeStart = $derived(
+        adventureStartDate !== '' &&
+            /^\d{4}-\d{2}-\d{2}$/.test(departureDate) &&
+            departureDate < adventureStartDate
+    );
     let valid = $derived(
         fromPort !== null &&
             toPort !== null &&
@@ -96,7 +112,8 @@
             /^\d{4}-\d{2}-\d{2}$/.test(departureDate) &&
             /^\d{2}:\d{2}(:\d{2})?$/.test(departureTime) &&
             /^\d{2}:\d{2}(:\d{2})?$/.test(arrivalTime) &&
-            !arrivalBeforeDeparture
+            !arrivalBeforeDeparture &&
+            !departureBeforeStart
     );
 
     function searchInto(query: string, assign: (results: FerryPort[]) => void) {
@@ -304,6 +321,10 @@
             <p class="text-xs text-destructive">{i18n._('library.ferry_error_same_port')}</p>
         {:else if arrivalBeforeDeparture}
             <p class="text-xs text-destructive">{i18n._('library.ferry_error_arrival_before')}</p>
+        {:else if departureBeforeStart}
+            <p class="text-xs text-destructive">
+                {i18n._('library.ferry_error_before_start').replace('{date}', adventureStartDate)}
+            </p>
         {/if}
 
         <Dialog.Footer>

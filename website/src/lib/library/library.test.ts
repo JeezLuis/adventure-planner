@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('$lib/i18n.svelte', () => ({ i18n: { _: (key: string, fallback?: string) => fallback ?? key } }));
 
-import { sortByOrder, orderRelativeTo } from '$lib/library/library';
+import {
+    sortByOrder,
+    orderRelativeTo,
+    orderedFilesByAdventure,
+    tripDayOffsets,
+} from '$lib/library/library';
 
 describe('sortByOrder', () => {
     it('orders items by their manual position', () => {
@@ -47,5 +52,32 @@ describe('orderRelativeTo (fractional midpoint ordering)', () => {
         const withInserted = [...siblings, { id: 'd', order: first }];
         const second = orderRelativeTo(withInserted, 'd', true); // between a(1) and d(1.5)
         expect(second).toBe(1.25);
+    });
+});
+
+describe('orderedFilesByAdventure', () => {
+    it('groups files by adventure in fileOrder, appending unknown files at the end', () => {
+        const placements = new Map([
+            ['f1', 'A'],
+            ['f2', 'B'],
+            ['f3', 'A'],
+            ['f4', 'A'], // not in fileOrder -> appended after the known ones
+        ]);
+        const result = orderedFilesByAdventure(placements, ['f3', 'f1', 'f2']);
+        expect(result.get('A')).toEqual(['f3', 'f1', 'f4']);
+        expect(result.get('B')).toEqual(['f2']);
+    });
+});
+
+describe('tripDayOffsets', () => {
+    it('advances one day per track, skips alternatives, and adds buffer days', () => {
+        const files = ['f1', 'f2', 'f3', 'f4'];
+        const alternatives = new Set(['f2']); // holds no slot
+        const buffers = new Map([['f1', 2]]); // f1 pushes the following tracks back
+        const offsets = tripDayOffsets(files, alternatives, buffers);
+        expect(offsets.get('f1')).toBe(0);
+        expect(offsets.has('f2')).toBe(false); // alternative: no slot
+        expect(offsets.get('f3')).toBe(3); // 0 + 1 + 2 buffer days
+        expect(offsets.get('f4')).toBe(4); // 3 + 1
     });
 });
