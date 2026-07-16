@@ -45,7 +45,9 @@ export const DEFAULT_OSMAND_EXPORT_OPTIONS: OsmandExportOptions = {
     width: 20,
     showArrows: true,
     showStartFinish: true,
-    milestones: true,
+    // Off by default: the milestone waypoints are an acquired taste; the
+    // dialog remembers the choice once enabled.
+    milestones: false,
     milestoneIntervalKm: 25,
     activity: 'adventure_motorcycling',
 };

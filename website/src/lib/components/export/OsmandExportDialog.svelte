@@ -28,7 +28,7 @@
     let width = $state(20);
     let showArrows = $state(true);
     let showStartFinish = $state(true);
-    let milestones = $state(true);
+    let milestones = $state(false);
     let milestoneIntervalKm = $state(25);
     let activity = $state<string>('adventure_motorcycling');
     let exporting = $state(false);

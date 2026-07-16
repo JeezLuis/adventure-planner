@@ -239,9 +239,19 @@ export async function exportAdventureToOsmand(
     }
     try {
         const { fileName, blob } = await buildOsmandPackage(
-            { name: collected.adventure.name, planDoc: collected.adventure.planDoc },
+            {
+                name: collected.adventure.name,
+                planDoc: collected.adventure.planDoc,
+                description: collected.adventure.description,
+                numbering: collected.adventure.numbering,
+            },
             tracks,
-            options
+            options,
+            {
+                stages: i18n._('osmand.labels.stages', 'stages'),
+                alternatives: i18n._('osmand.labels.alternatives', 'alternatives'),
+                itinerary: i18n._('osmand.labels.itinerary', 'Itinerary'),
+            }
         );
         FileSaver.saveAs(blob, fileName);
         toast.success(i18n._('osmand.success', 'Adventure packaged for OsmAnd'));

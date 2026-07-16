@@ -28,7 +28,12 @@
         },
         "export": "Exportar .osf",
         "success": "Aventura empaquetada para OsmAnd",
-        "error": "No se pudo generar el paquete de OsmAnd"
+        "error": "No se pudo generar el paquete de OsmAnd",
+        "labels": {
+            "stages": "etapas",
+            "alternatives": "alternativas",
+            "itinerary": "Itinerario"
+        }
     },
     "menu": {
         "new": "Nuevo",

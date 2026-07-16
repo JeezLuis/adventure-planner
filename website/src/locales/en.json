@@ -28,7 +28,12 @@
         },
         "export": "Export .osf",
         "success": "Adventure packaged for OsmAnd",
-        "error": "Could not build the OsmAnd package"
+        "error": "Could not build the OsmAnd package",
+        "labels": {
+            "stages": "stages",
+            "alternatives": "alternatives",
+            "itinerary": "Itinerary"
+        }
     },
     "menu": {
         "new": "New",

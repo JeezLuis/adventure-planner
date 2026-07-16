@@ -48,6 +48,27 @@ export type OsmandAdventureInput = {
     name: string;
     /** The adventure's plan document (Markdown), rendered to HTML descriptions. */
     planDoc?: string;
+    /** Free-form adventure notes (the subtitle of the plan-mode overview). */
+    description?: string;
+    /** Numbering mode; 'date' makes stage labels read as trip dates. */
+    numbering?: 'none' | 'numbers' | 'date';
+};
+
+/**
+ * The translatable words used inside the generated descriptions. The export
+ * module is pure (no i18n runtime), so the UI passes the localized words in;
+ * defaults keep tests and headless callers working in English.
+ */
+export type OsmandExportLabels = {
+    stages: string;
+    alternatives: string;
+    itinerary: string;
+};
+
+export const DEFAULT_OSMAND_EXPORT_LABELS: OsmandExportLabels = {
+    stages: 'stages',
+    alternatives: 'alternatives',
+    itinerary: 'Itinerary',
 };
 
 /** One track of the adventure, in library order. */
@@ -161,11 +182,89 @@ export function planDocToHtml(markdown: string | undefined | null): string {
     return parts.join('');
 }
 
-/** The per-file Description: the track's own note first, then the plan document. */
-function trackDescriptionHtml(trackNote: string | undefined, planHtml: string): string {
-    const note = trackNote?.trim();
-    const noteHtml = note ? `<p>${escapeHtml(note).replace(/\n/g, '<br/>')}</p>` : '';
-    return noteHtml + planHtml;
+/** A plain-text note as an HTML paragraph, newlines preserved. */
+function noteParagraph(note: string | undefined): string {
+    const text = note?.trim();
+    return text ? `<p>${escapeHtml(text).replace(/\n/g, '<br/>')}</p>` : '';
+}
+
+/** Per-track facts shown in the descriptions, mirroring the plan-mode page. */
+type TrackFacts = {
+    /** "[tag] Name" or "Name (ALT)": how the track is listed in the itinerary. */
+    label: string;
+    distanceKm: number;
+    ascent: number;
+    descent: number;
+};
+
+function trackFacts(input: OsmandTrackInput): TrackFacts {
+    const stats = input.file.getStatistics().global;
+    const base = input.file.metadata.name?.trim() || input.file.trk[0]?.name?.trim() || 'Track';
+    const tag = input.stageLabel && !input.alternative ? `[${input.stageLabel}] ` : '';
+    return {
+        label: `${tag}${base}${input.alternative ? ' (ALT)' : ''}`,
+        distanceKm: stats.distance.total,
+        ascent: stats.elevation.gain,
+        descent: stats.elevation.loss,
+    };
+}
+
+function formatKm(km: number): string {
+    return `${Math.round(km)} km`;
+}
+
+/**
+ * The adventure header of every description: bold title (which doubles as
+ * OsmAnd's collapsed summary line), the plan-mode overview facts (total km
+ * over the main tracks, stage/alternative counts, the date range when the
+ * adventure is numbered by dates) and the adventure notes as a subtitle.
+ */
+function overviewHtml(
+    adventure: OsmandAdventureInput,
+    tracks: OsmandTrackInput[],
+    facts: TrackFacts[],
+    labels: OsmandExportLabels
+): string {
+    const mains = tracks.filter((input) => !input.alternative);
+    const totalKm = facts.reduce(
+        (sum, fact, index) => sum + (tracks[index].alternative ? 0 : fact.distanceKm),
+        0
+    );
+    const bits = [formatKm(totalKm), `${mains.length} ${labels.stages}`];
+    const alternatives = tracks.length - mains.length;
+    if (alternatives > 0) {
+        bits.push(`${alternatives} ${labels.alternatives}`);
+    }
+    if (adventure.numbering === 'date') {
+        const dates = mains
+            .map((input) => input.stageLabel)
+            .filter((label): label is string => !!label);
+        if (dates.length > 0) {
+            bits.push(`${dates[0]} - ${dates[dates.length - 1]}`);
+        }
+    }
+    return (
+        `<p><b>${escapeHtml(adventure.name)}</b></p>` +
+        `<p>${bits.map(escapeHtml).join(' · ')}</p>` +
+        (adventure.description?.trim()
+            ? `<p><i>${escapeHtml(adventure.description.trim()).replace(/\n/g, '<br/>')}</i></p>`
+            : '')
+    );
+}
+
+/** The "this track" line: label, distance and (when present) ascent/descent. */
+function stageHtml(fact: TrackFacts): string {
+    const bits = [formatKm(fact.distanceKm)];
+    if (Math.round(fact.ascent) > 0 || Math.round(fact.descent) > 0) {
+        bits.push(`+${Math.round(fact.ascent)} m / -${Math.round(fact.descent)} m`);
+    }
+    return `<p><b>${escapeHtml(fact.label)}</b> · ${bits.map(escapeHtml).join(' · ')}</p>`;
+}
+
+/** The full track list with distances, appended to every description. */
+function itineraryHtml(facts: TrackFacts[], labels: OsmandExportLabels): string {
+    const lines = facts.map((fact) => escapeHtml(`${fact.label} · ${formatKm(fact.distanceKm)}`));
+    return `<p><b>${escapeHtml(labels.itinerary)}</b></p><p>${lines.join('<br/>')}</p>`;
 }
 
 /**
@@ -258,7 +357,11 @@ type EntryContext = {
     folder: string;
     adventure: OsmandAdventureInput;
     options: OsmandExportOptions;
+    facts: TrackFacts[];
+    /** Description parts shared by every file of the package. */
+    overviewHtml: string;
     planHtml: string;
+    itineraryHtml: string;
     milestones: Map<number, WaypointType[]>;
     usedNames: Set<string>;
 };
@@ -296,10 +399,15 @@ function buildTrackEntry(
         });
     }
 
-    const descHtml = trackDescriptionHtml(gpx.trk[0]?.desc, ctx.planHtml);
-    if (descHtml) {
-        gpx.metadata.desc = descHtml;
-    }
+    // The description mirrors the plan-mode page: adventure header (title,
+    // totals, dates, notes), this track's own line and note, the plan
+    // document, and the full itinerary.
+    gpx.metadata.desc =
+        ctx.overviewHtml +
+        stageHtml(ctx.facts[index]) +
+        noteParagraph(gpx.trk[0]?.desc) +
+        ctx.planHtml +
+        ctx.itineraryHtml;
 
     // Readable metadata tags: OsmAnd (Android 5.0+) lists them in the track
     // context menu. The app-private ap:data payload is dropped: this export is
@@ -382,18 +490,23 @@ function buildTrackEntry(
 export function buildOsmandPackageParts(
     adventure: OsmandAdventureInput,
     tracks: OsmandTrackInput[],
-    rawOptions: OsmandExportOptions
+    rawOptions: OsmandExportOptions,
+    labels: OsmandExportLabels = DEFAULT_OSMAND_EXPORT_LABELS
 ): OsmandPackageParts {
     if (tracks.length === 0) {
         throw new Error('Cannot build an OsmAnd package without tracks');
     }
     const options = sanitizeOsmandExportOptions(rawOptions);
     const folder = sanitizeFileName(adventure.name) || 'Adventure';
+    const facts = tracks.map(trackFacts);
     const ctx: EntryContext = {
         folder,
         adventure,
         options,
+        facts,
+        overviewHtml: overviewHtml(adventure, tracks, facts, labels),
         planHtml: planDocToHtml(adventure.planDoc),
+        itineraryHtml: itineraryHtml(facts, labels),
         milestones: options.milestones
             ? computeMilestones(tracks, options.milestoneIntervalKm)
             : new Map(),
@@ -412,9 +525,10 @@ export function buildOsmandPackageParts(
 export async function buildOsmandPackage(
     adventure: OsmandAdventureInput,
     tracks: OsmandTrackInput[],
-    options: OsmandExportOptions
+    options: OsmandExportOptions,
+    labels: OsmandExportLabels = DEFAULT_OSMAND_EXPORT_LABELS
 ): Promise<{ fileName: string; blob: Blob }> {
-    const parts = buildOsmandPackageParts(adventure, tracks, options);
+    const parts = buildOsmandPackageParts(adventure, tracks, options, labels);
     const zip = new JSZip();
     zip.file('items.json', parts.itemsJson);
     for (const entry of parts.entries) {

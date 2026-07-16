@@ -220,7 +220,10 @@ describe('buildOsmandPackageParts', () => {
     });
 
     it('places milestone waypoints along the main route only, with done|left names', () => {
-        const parts = buildOsmandPackageParts({ name: 'Trip' }, fixtureTracks(), options);
+        const parts = buildOsmandPackageParts({ name: 'Trip' }, fixtureTracks(), {
+            ...options,
+            milestones: true,
+        });
         const [mainA, alt, mainB] = parts.entries;
 
         // Total ≈ 66.7 km with a 25 km interval: marks at 25 km (on day one,
@@ -231,14 +234,44 @@ describe('buildOsmandPackageParts', () => {
         expect(alt.xml).not.toContain(`<type>${MILESTONE_GROUP}</type>`);
     });
 
-    it('omits milestones when disabled', () => {
-        const parts = buildOsmandPackageParts({ name: 'Trip' }, fixtureTracks(), {
-            ...options,
-            milestones: false,
-        });
+    it('omits milestone waypoints by default', () => {
+        expect(DEFAULT_OSMAND_EXPORT_OPTIONS.milestones).toBe(false);
+        const parts = buildOsmandPackageParts({ name: 'Trip' }, fixtureTracks(), options);
         for (const entry of parts.entries) {
             expect(entry.xml).not.toContain(`<type>${MILESTONE_GROUP}</type>`);
         }
+    });
+
+    it('opens every description with the adventure overview and closes with the itinerary', () => {
+        const parts = buildOsmandPackageParts(
+            {
+                name: 'Pyrenees 2026',
+                description: 'Two weeks of trails',
+                numbering: 'date',
+                planDoc: '## Packing\n- [ ] Tent',
+            },
+            fixtureTracks().map((track, index) => ({
+                ...track,
+                stageLabel: track.alternative ? undefined : ['01/08', '02/08'][index > 0 ? 1 : 0],
+            })),
+            options
+        );
+
+        for (const entry of parts.entries) {
+            // Title first (it doubles as OsmAnd's collapsed summary), then the
+            // totals line: ~67 km over 2 stages, 1 alternative, the date range.
+            expect(entry.xml).toContain(
+                '<desc>&lt;p&gt;&lt;b&gt;Pyrenees 2026&lt;/b&gt;&lt;/p&gt;'
+            );
+            expect(entry.xml).toContain('67 km · 2 stages · 1 alternatives · 01/08 - 02/08');
+            expect(entry.xml).toContain('&lt;i&gt;Two weeks of trails&lt;/i&gt;');
+            expect(entry.xml).toContain('&lt;b&gt;Itinerary&lt;/b&gt;');
+            expect(entry.xml).toContain('Scenic detour (ALT) · 6 km');
+        }
+
+        // The per-file stage line carries this track's own label and distance.
+        expect(parts.entries[0].xml).toContain('&lt;b&gt;[01/08] Day one&lt;/b&gt; · 33 km');
+        expect(parts.entries[1].xml).toContain('&lt;b&gt;Scenic detour (ALT)&lt;/b&gt; · 6 km');
     });
 
     it('carries adventure metadata as readable tags and the plan as HTML description', () => {
